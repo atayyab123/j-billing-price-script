@@ -1,0 +1,38 @@
+{
+  "name": "j-billing-price-script",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "node ./app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atayyab123/j-billing-price-script.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/atayyab123/j-billing-price-script/issues"
+  },
+  "homepage": "https://github.com/atayyab123/j-billing-price-script#readme",
+  "dependencies": {
+    "@koa/cors": "^5.0.0",
+    "@koa/router": "^13.1.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.0",
+    "knex": "^3.1.0",
+    "koa": "^3.0.0",
+    "koa-bodyparser": "^4.4.1",
+    "koa-helmet": "^8.0.1",
+    "koa-logger": "^4.0.0",
+    "koa-static": "^5.0.0",
+    "moment": "^2.30.1",
+    "moment-timezone": "^0.6.0",
+    "objection": "^3.1.5",
+    "papaparse": "^5.5.3",
+    "pg": "^8.16.3",
+    "tunnel-ssh": "^4.1.6"
+  }
+}
