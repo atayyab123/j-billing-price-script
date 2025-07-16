@@ -16,20 +16,21 @@ const verifyCors = async (ctx, next) => {
     return next();
   }
 
-  if (process.env.NODE_ENV === "production") {
-    console.log("-------------------------------------------------");
-    console.log("allowedOrigins", allowedOrigins);
-    console.log("-------------------------------------------------");
-    if (!referer?.startsWith(process.env.PRODUCTION_WEB_URL)) {
-      ctx.status = 400;
-      ctx.body = {
-        success: false,
-        message: "Failure: Request not allowed for Production",
-        data: null,
-      };
-      return;
-    }
-  } else if (process.env.NODE_ENV === "staging") {
+  // if (process.env.NODE_ENV === "production") {
+  //   console.log("-------------------------------------------------");
+  //   console.log("allowedOrigins", allowedOrigins);
+  //   console.log("-------------------------------------------------");
+  //   if (!referer?.startsWith(process.env.PRODUCTION_WEB_URL)) {
+  //     ctx.status = 400;
+  //     ctx.body = {
+  //       success: false,
+  //       message: "Failure: Request not allowed for Production",
+  //       data: null,
+  //     };
+  //     return;
+  //   }
+  // }
+  else if (process.env.NODE_ENV === "staging") {
     console.log("-------------------------------------------------");
     console.log("allowedOriginStaging", allowedOriginStaging);
     console.log("-------------------------------------------------");

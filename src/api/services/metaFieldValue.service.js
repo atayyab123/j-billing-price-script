@@ -7,6 +7,9 @@ class service {
       .whereExists(
         model.relatedQuery('metaFieldName').where('entityType', 'ORDER').andWhere('name', 'Service ID')
       )
+      .whereExists(
+        model.relatedQuery('order').whereNull('activeUntil')
+      )
       .withGraphFetched('[order(filterActive).[orderLine(filterActive).[item(filterActive)]]]');
     return data;
   }

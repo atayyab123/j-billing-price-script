@@ -42,7 +42,10 @@ function selectDataBase() {
   const isStaging = isStagingEnv();
   const isMyLocal = isMyLocalEnv();
 
-  if (isProduction && !isManagement) return dbProduction;
+  if (isProduction && !isManagement) {
+    console.log("Using Production Database");
+    return dbProduction;
+  }
   else if (isProduction && isManagement) return dbProductionManagement;
   else if (isStaging && !isManagement) return dbStaging;
   else if (isStaging && isManagement) return dbStagingManagement;
