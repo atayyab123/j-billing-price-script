@@ -32,8 +32,7 @@ class model extends Model {
       order: {
         relation: Model.HasOneThroughRelation,
         modelClass: order,
-        filter: (query) => query.select("id", "userId", "periodId", "billingTypeId", "activeSince", "activeUntil", "cycleStart",
-          "createDatetime", "nextBillableDay", "createdBy", "statusId", "currencyId", "notes", "primaryOrderId"),
+        filter: (query) => query.select("id", "activeUntil"),
         join: {
           from: "metaFieldValue.id",
           through: {

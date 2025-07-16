@@ -30,13 +30,9 @@ class model extends Model {
             "id",
             "orderId",
             "itemId",
-            "typeId",
             "amount",
             "quantity",
-            "price",
-            "createDatetime",
-            "deleted",
-            "description",
+            "price"
           ),
         join: {
           from: "purchaseOrder.id",
