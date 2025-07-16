@@ -10,5 +10,11 @@ class service {
       .withGraphFetched('[order(filterActive).[orderLine(filterActive).[item(filterActive)]]]');
     return data;
   }
+  async upsertGraphPriceUpdateRelateNoDeleteNoInsert(payload, trx) {
+    console.log('upsertGraphPriceUpdateRelateNoDeleteNoInsert started')
+    const data = await model.query(trx).upsertGraphAndFetch(payload, { relate: true, noDelete: true, noInsert: true, update: true });
+    console.log('upsertGraphPriceUpdateRelateNoDeleteNoInsert completed successfully');
+    return data;
+  }
 }
 module.exports = new service();

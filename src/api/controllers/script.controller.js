@@ -130,11 +130,21 @@ class controller {
           const filename = 'ECP01317-Price update(Sheet1)-remainingPriceUpdateFilesData';
           fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
         }
+        const upsertGraphPriceUpdateRelateNoDeleteNoInsert = await metaFieldValueService.upsertGraphPriceUpdateRelateNoDeleteNoInsert(getModifiedRecords, trx);
+        if (upsertGraphPriceUpdateRelateNoDeleteNoInsert)
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Price Update",
+              data: { before: getRecords, after: upsertGraphPriceUpdateRelateNoDeleteNoInsert, uniqueRemainingFileData },
+            }
+          };
         return {
           status: 200,
           data: {
-            success: true,
-            message: "Success: Price Update",
+            success: false,
+            message: "Failure: No records Update",
             data: { before: getRecords, after: getModifiedRecords, uniqueRemainingFileData },
           }
         };
