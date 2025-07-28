@@ -3,6 +3,11 @@ const Papa = require('papaparse');
 const fs = require('fs');
 const path = require('path');
 const metaFieldValueService = require("../services/metaFieldValue.service");
+const itemTypeService = require("../services/itemType.service");
+const itemService = require("../services/item.service");
+const jbillingTableService = require("../services/jbillingTable.service");
+const metaFieldNameService = require("../services/metaFieldName.service");
+const itemTypeEntityMapService = require("../services/itemTypeEntityMap.service");
 
 class controller {
   async priceUpdateSheetOne() {
@@ -502,7 +507,163 @@ class controller {
     }
   }
 
-  async products() { }
+  async products() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Products.csv');
+        const csvFileContent = fs.readFileSync(csvFilePath, 'utf8');
+        // Parse the CSV content
+        const json = Papa.parse(csvFileContent, {
+          header: true, // if you want to treat the first line as headers
+          skipEmptyLines: true,
+        });
+
+        const data = json.data; // Parse the CSV content
+        console.log('Products data length:', data.length);
+
+        const getMaxItemTypeId = await itemTypeService.maxId(trx);
+        let maxItemTypeId = parseInt(getMaxItemTypeId);
+        const getMaxItemId = await itemService.maxId(trx);
+        let maxItemId = parseInt(getMaxItemId);
+        const getMaxMetaFieldValueId = await metaFieldValueService.maxId(trx);
+        let maxMetaFieldValueId = parseInt(getMaxMetaFieldValueId);
+        const getItemTableId = await jbillingTableService.itemTableId(trx);
+        const itemTableId = parseInt(getItemTableId.id);
+        const getGroupCode = await metaFieldNameService.getGroupCode(trx);
+        const metaFieldNameIdGroupCode = parseInt(getGroupCode.id);
+        const getTerm = await metaFieldNameService.getTerm(trx);
+        const metaFieldNameIdTerm = parseInt(getTerm.id);
+        const getTaxScheme = await metaFieldNameService.getTaxScheme(trx);
+        const metaFieldNameIdTaxScheme = parseInt(getTaxScheme.id);
+        const getRecurringCharge = await metaFieldNameService.getRecurringCharge(trx);
+        const metaFieldNameIdRecurringCharge = parseInt(getRecurringCharge.id);
+        const getEstablishmentCharge = await metaFieldNameService.getEstablishmentCharge(trx);
+        const metaFieldNameIdEstablishmentCharge = parseInt(getEstablishmentCharge.id);
+
+        const grouped = {};
+
+        data.forEach(entry => {
+          const group = entry["Group Code"].trim();
+          if (!grouped[group]) {
+            grouped[group] = [];
+          }
+          grouped[group].push(entry);
+        });
+
+        const output = {
+          entityId: 20,
+          itemType: []
+        };
+
+        Object.entries(grouped).forEach(([groupCode, items]) => {
+          const itemType = {
+            id: ++maxItemTypeId,
+            entityId: 20,
+            description: groupCode,
+            orderLineTypeId: 1,
+            optlock: 1,
+            internal: "f",
+            item: []
+          };
+
+          items.forEach(entry => {
+            const item = {
+              id: ++maxItemId,
+              internalNumber: entry["Product Code"].trim(),
+              entityId: 20,
+              optlock: 1,
+              priceManual: 0,
+              itemEntityMap: {
+                entityId: 20
+              },
+              internationalDescription: {
+                tableId: itemTableId,
+                psudoColumn: "description",
+                languageId: 1,
+                content: entry["Service Name"].trim()
+              },
+              metaFieldValue: [
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldId: metaFieldNameIdGroupCode,
+                  dtype: "string",
+                  stringValue: entry["Group Code"]
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldId: metaFieldNameIdTerm,
+                  dtype: "decimal",
+                  decimalValue: parseInt(entry["Term"].trim())
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldId: metaFieldNameIdTaxScheme,
+                  dtype: "string",
+                  stringValue: "TAX_GST" // assuming constant
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldId: metaFieldNameIdRecurringCharge,
+                  dtype: "decimal",
+                  decimalValue: parseFloat(entry["Recurring Charge"].trim())
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldId: metaFieldNameIdEstablishmentCharge,
+                  dtype: "decimal",
+                  decimalValue: parseFloat(entry["Establishment Charge"].trim())
+                }
+              ]
+            };
+            itemType.item.push(item);
+          });
+
+          output.itemType.push(itemType);
+        });
+
+        console.log('Output length:', output.itemType.length);
+        const upsertGraphInsertMissingNoDeleteNoUpdateNoRelate = await itemTypeEntityMapService.upsertGraphInsertMissingNoDeleteNoUpdateNoRelate(output, trx);
+
+        if (upsertGraphInsertMissingNoDeleteNoUpdateNoRelate) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Products Inserted",
+              data: upsertGraphInsertMissingNoDeleteNoUpdateNoRelate,
+            }
+          };
+        }
+        return {
+          status: 200,
+          data: {
+            success: false,
+            message: "Failure: No records Inserted",
+            data: { data, output },
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/productsErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `Products-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Price Update:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Products UpsertGraph. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
 }
 
 module.exports = new controller();

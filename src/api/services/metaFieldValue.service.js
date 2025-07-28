@@ -19,5 +19,10 @@ class service {
     console.log('upsertGraphPriceUpdateRelateNoDeleteNoInsert completed successfully');
     return data;
   }
+
+  async maxId(trx) {
+    const data = await model.query(trx).max('id as maxId').first();
+    return data?.maxId || 0;
+  }
 }
 module.exports = new service();
