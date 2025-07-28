@@ -24,4 +24,11 @@ router.get("/price-update/sheet-two", verifyCors, async (ctx, next) => {
   console.log(response);
 });
 
+router.get("/products", verifyCors, async (ctx, next) => {
+  const response = await controller.products();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 module.exports = router;

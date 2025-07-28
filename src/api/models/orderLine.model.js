@@ -15,6 +15,7 @@ class model extends Model {
 
   static get relationMappings() {
     const item = require("./item.model");
+    const orderChange = require("./orderChange.model");
 
     return {
       item: {
@@ -24,6 +25,14 @@ class model extends Model {
         join: {
           from: "orderLine.itemId",
           to: "item.id"
+        }
+      },
+      orderChange: {
+        relation: Model.HasManyRelation,
+        modelClass: orderChange,
+        join: {
+          from: "orderLine.id",
+          to: "orderChange.orderLineId"
         }
       }
     };

@@ -10,7 +10,7 @@ class service {
       .whereExists(
         model.relatedQuery('order').whereNull('activeUntil')
       )
-      .withGraphFetched('[order(filterActive).[orderLine(filterActive).[item(filterActive)]]]');
+      .withGraphFetched('[order(filterActive).[orderLine(filterActive).[item(filterActive), orderChange]]]');
     return data;
   }
   async upsertGraphPriceUpdateRelateNoDeleteNoInsert(payload, trx) {

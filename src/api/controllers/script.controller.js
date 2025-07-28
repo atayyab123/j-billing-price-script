@@ -58,6 +58,8 @@ class controller {
                 const orderLine = order?.orderLine;
                 if (orderLine && orderLine?.length > 0) {
                   for (const line of orderLine) {
+                    const orderChange = line?.orderChange;
+                    if (orderChange && orderChange?.length > 1) console.log('orderChange.length', orderChange.length, orderChange.orderLineId);
                     const itemInternalNumber = line?.item?.internalNumber || null;
                     const findLineItem = findServiceId.filter(item => itemInternalNumber.startsWith(item['Product Code'].toString().trim()));
                     if (findLineItem && findLineItem?.length > 0) {
@@ -130,16 +132,16 @@ class controller {
           const filename = 'ECP01317-Price update(Sheet1)-remainingPriceUpdateFilesData';
           fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
         }
-        const upsertGraphPriceUpdateRelateNoDeleteNoInsert = await metaFieldValueService.upsertGraphPriceUpdateRelateNoDeleteNoInsert(getModifiedRecords, trx);
-        if (upsertGraphPriceUpdateRelateNoDeleteNoInsert)
-          return {
-            status: 200,
-            data: {
-              success: true,
-              message: "Success: Price Update",
-              data: { before: getRecords, after: upsertGraphPriceUpdateRelateNoDeleteNoInsert, uniqueRemainingFileData },
-            }
-          };
+        // const upsertGraphPriceUpdateRelateNoDeleteNoInsert = await metaFieldValueService.upsertGraphPriceUpdateRelateNoDeleteNoInsert(getModifiedRecords, trx);
+        // if (upsertGraphPriceUpdateRelateNoDeleteNoInsert)
+        //   return {
+        //     status: 200,
+        //     data: {
+        //       success: true,
+        //       message: "Success: Price Update",
+        //       data: { before: getRecords, after: upsertGraphPriceUpdateRelateNoDeleteNoInsert, uniqueRemainingFileData },
+        //     }
+        //   };
         return {
           status: 200,
           data: {
@@ -499,6 +501,8 @@ class controller {
       };
     }
   }
+
+  async products() { }
 }
 
 module.exports = new controller();
