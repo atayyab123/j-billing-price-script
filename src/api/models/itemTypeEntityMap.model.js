@@ -5,6 +5,10 @@ class model extends Model {
     return "itemTypeEntityMap";
   }
 
+  static get idColumn() {
+    return ['entityId', 'itemTypeId'];
+  }
+
   static get relationMappings() {
     const itemType = require("./itemType.model");
 

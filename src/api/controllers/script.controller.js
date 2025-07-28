@@ -550,10 +550,7 @@ class controller {
           grouped[group].push(entry);
         });
 
-        const output = {
-          entityId: 20,
-          itemType: []
-        };
+        const output = []
 
         Object.entries(grouped).forEach(([groupCode, items]) => {
           const itemType = {
@@ -585,31 +582,31 @@ class controller {
               metaFieldValue: [
                 {
                   id: ++maxMetaFieldValueId,
-                  metaFieldId: metaFieldNameIdGroupCode,
+                  metaFieldNameId: metaFieldNameIdGroupCode,
                   dtype: "string",
                   stringValue: entry["Group Code"]
                 },
                 {
                   id: ++maxMetaFieldValueId,
-                  metaFieldId: metaFieldNameIdTerm,
+                  metaFieldNameId: metaFieldNameIdTerm,
                   dtype: "decimal",
                   decimalValue: parseInt(entry["Term"].trim())
                 },
                 {
                   id: ++maxMetaFieldValueId,
-                  metaFieldId: metaFieldNameIdTaxScheme,
+                  metaFieldNameId: metaFieldNameIdTaxScheme,
                   dtype: "string",
                   stringValue: "TAX_GST" // assuming constant
                 },
                 {
                   id: ++maxMetaFieldValueId,
-                  metaFieldId: metaFieldNameIdRecurringCharge,
+                  metaFieldNameId: metaFieldNameIdRecurringCharge,
                   dtype: "decimal",
                   decimalValue: parseFloat(entry["Recurring Charge"].trim())
                 },
                 {
                   id: ++maxMetaFieldValueId,
-                  metaFieldId: metaFieldNameIdEstablishmentCharge,
+                  metaFieldNameId: metaFieldNameIdEstablishmentCharge,
                   dtype: "decimal",
                   decimalValue: parseFloat(entry["Establishment Charge"].trim())
                 }
@@ -618,10 +615,14 @@ class controller {
             itemType.item.push(item);
           });
 
-          output.itemType.push(itemType);
+          output.push({
+            entityId: 20,
+            itemType
+          });
         });
 
-        console.log('Output length:', output.itemType.length);
+        console.log('Output length:', output.length);
+
         const upsertGraphInsertMissingNoDeleteNoUpdateNoRelate = await itemTypeEntityMapService.upsertGraphInsertMissingNoDeleteNoUpdateNoRelate(output, trx);
 
         if (upsertGraphInsertMissingNoDeleteNoUpdateNoRelate) {
