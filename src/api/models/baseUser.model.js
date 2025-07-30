@@ -16,6 +16,7 @@ class model extends Model {
   static get relationMappings() {
     const order = require("./purchaseOrder.model");
     const customer = require("./customer.model");
+    const userRoleMap = require("./userRoleMap.model");
 
     return {
       order: {
@@ -37,6 +38,14 @@ class model extends Model {
         join: {
           from: "baseUser.id",
           to: "customer.userId"
+        }
+      },
+      userRoleMap: {
+        relation: Model.HasOneRelation,
+        modelClass: userRoleMap,
+        join: {
+          from: "baseUser.id",
+          to: "userRoleMap.userId"
         }
       }
     }

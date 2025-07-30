@@ -7,13 +7,14 @@ class model extends Model {
 
   static get relationMappings() {
     const user = require("./baseUser.model");
+    const metaFieldValue = require("./metaFieldValue.model");
 
     return {
       child: {
         relation: Model.HasManyRelation,
         modelClass: model,
-        filter: (query) => query.select("id", "userId", "parentId", "isParent", "invoiceChild", "dynamicBalance", "creditLimit",
-          "mainSubscriptOrderPeriodId", "nextInvoiceDayOfPeriod", "nextInoviceDate", "accountTypeId"
+        filter: (query) => query.select("id", "userId", "invoiceDeliveryMethodId", "parentId", "isParent", "invoiceChild", "optlock", "dynamicBalance",
+          "creditLimit", "autoRecharge", "useParentPricing", "mainSubscriptOrderPeriodId", "nextInvoiceDayOfPeriod", "nextInoviceDate", "accountTypeId"
         ),
         join: {
           from: "customer.id",
@@ -23,8 +24,8 @@ class model extends Model {
       parent: {
         relation: Model.HasOneRelation,
         modelClass: model,
-        filter: (query) => query.select("id", "userId", "parentId", "isParent", "invoiceChild", "dynamicBalance", "creditLimit",
-          "mainSubscriptOrderPeriodId", "nextInvoiceDayOfPeriod", "nextInoviceDate", "accountTypeId"
+        filter: (query) => query.select("id", "userId", "invoiceDeliveryMethodId", "parentId", "isParent", "invoiceChild", "optlock", "dynamicBalance",
+          "creditLimit", "autoRecharge", "useParentPricing", "mainSubscriptOrderPeriodId", "nextInvoiceDayOfPeriod", "nextInoviceDate", "accountTypeId"
         ),
         join: {
           from: "customer.parentId",
@@ -34,12 +35,26 @@ class model extends Model {
       user: {
         relation: Model.BelongsToOneRelation,
         modelClass: user,
-        filter: (query) => query.select("id", "userName", "currencyId"),
+        filter: (query) => query.select("id", "entityId", "deleted", "languageId", "statusId", "subscriberStatus", "currencyId", "createDatetime",
+          "userName", "optlock", "encryptionScheme"),
         join: {
           from: "customer.userId",
           to: "baseUser.id"
         }
-      }
+      },
+      metaFieldValue: {
+        relation: Model.ManyToManyRelation,
+        modelClass: metaFieldValue,
+        filter: (query) => query.select("id", "metaFieldNameId", "dtype", "booleanValue", "stringValue"),
+        join: {
+          from: "customer.id",
+          through: {
+            from: "customerMetaFieldMap.customerId",
+            to: "customerMetaFieldMap.metaFieldValueId",
+          },
+          to: "metaFieldValue.id"
+        }
+      },
     };
   }
 }

@@ -31,4 +31,11 @@ router.get("/products", verifyCors, async (ctx, next) => {
   console.log(response);
 });
 
+router.get("/user-hierarchy", verifyCors, async (ctx, next) => {
+  const response = await controller.userHierarchy();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 module.exports = router;

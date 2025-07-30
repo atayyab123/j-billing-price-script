@@ -9,6 +9,7 @@ class model extends Model {
     const metaFieldName = require("./metaFieldName.model");
     const user = require("./baseUser.model");
     const order = require("./purchaseOrder.model");
+    const metafieldGroupMetaFieldMap = require("./metafieldGroupMetaFieldMap.model")
 
     return {
       metaFieldName: {
@@ -42,6 +43,14 @@ class model extends Model {
           to: "purchaseOrder.id"
         }
       },
+      metafieldGroupMetaFieldMap: {
+        relation: Model.HasOneRelation,
+        modelClass: metafieldGroupMetaFieldMap,
+        join: {
+          from: "metaFieldValue.id",
+          to: "metafieldGroupMetaFieldMap.metaFieldValueId"
+        }
+      }
     }
   }
 }
