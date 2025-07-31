@@ -9,6 +9,8 @@ const jbillingTableService = require("../services/jbillingTable.service");
 const metaFieldNameService = require("../services/metaFieldName.service");
 const itemTypeEntityMapService = require("../services/itemTypeEntityMap.service");
 const metaFieldGroupService = require("../services/metaFieldGroup.service");
+const customerService = require("../services/customer.service");
+const baseUserService = require("../services/baseUser.service");
 
 class controller {
   async priceUpdateSheetOne() {
@@ -679,9 +681,6 @@ class controller {
         const sites = await this.parseCsvFile('Sites.csv');
         console.log('Sites data length:', sites.length);
 
-        const getMaxMetaFieldValueId = await metaFieldValueService.maxId(trx);
-        let maxMetaFieldValueId = parseInt(getMaxMetaFieldValueId);
-
         const getChannelPartnerGroup = await metaFieldGroupService.getChannelPartnerGroup(trx);
         const metaFieldGroupAccountTypeIdChannelPartner = parseInt(getChannelPartnerGroup.accountTypeId);
         const getCustomerGroup = await metaFieldGroupService.getCustomerGroup(trx);
@@ -696,6 +695,8 @@ class controller {
 
         const getAccountTypeCpId = await metaFieldNameService.getAccountTypeCpId(trx);
         const metaFieldAccountTypeCpIDId = parseInt(getAccountTypeCpId.id);
+        const getAccountTypeChannelPartnerNameId = await metaFieldNameService.getAccountTypeChannelPartnerNameId(trx);
+        const metaFieldAccountTypeChannelPartnerNameId = parseInt(getAccountTypeChannelPartnerNameId.id);
         const getAccountTypeCpEmailId = await metaFieldNameService.getAccountTypeCpEmailId(trx);
         const metaFieldAccountTypeEmailId = parseInt(getAccountTypeCpEmailId.id);
         const getAccountTypeCpOfficePhoneId = await metaFieldNameService.getAccountTypeCpOfficePhoneId(trx);
@@ -778,138 +779,184 @@ class controller {
         const metaFieldAccountTypeSiteStreetTypeId = parseInt(getAccountTypeSiteStreetTypeId.id);
         const getAccountTypeSiteStreetTypeSuffixId = await metaFieldNameService.getAccountTypeSiteStreetTypeSuffixId(trx);
         const metaFieldAccountTypeSiteStreetTypeSuffixId = parseInt(getAccountTypeSiteStreetTypeSuffixId.id);
+        const getAccountTypeSiteSuburbId = await metaFieldNameService.getAccountTypeSiteSuburbId(trx);
+        const metaFieldAccountTypeSiteSuburbId = parseInt(getAccountTypeSiteSuburbId.id);
+        const getAccountTypeSiteStateId = await metaFieldNameService.getAccountTypeSiteStateId(trx);
+        const metaFieldAccountTypeSiteStateId = parseInt(getAccountTypeSiteStateId.id);
+        const getAccountTypeSitePostcodeId = await metaFieldNameService.getAccountTypeSitePostcodeId(trx);
+        const metaFieldAccountTypeSitePostcodeId = parseInt(getAccountTypeSitePostcodeId.id);
+        const getAccountTypeSiteCountryId = await metaFieldNameService.getAccountTypeSiteCountryId(trx);
+        const metaFieldAccountTypeSiteCountryId = parseInt(getAccountTypeSiteCountryId.id);
+        const getAccountTypeSiteMainPhoneId = await metaFieldNameService.getAccountTypeSiteMainPhoneId(trx);
+        const metaFieldAccountTypeSiteMainPhoneId = parseInt(getAccountTypeSiteMainPhoneId.id);
+        const getAccountTypeSiteCustomerIDId = await metaFieldNameService.getAccountTypeSiteCustomerIDId(trx);
+        const metaFieldAccountTypeSiteCustomerIDId = parseInt(getAccountTypeSiteCustomerIDId.id);
+
+        const getMaxMetaFieldValueId = await metaFieldValueService.maxId(trx);
+        let maxMetaFieldValueId = parseInt(getMaxMetaFieldValueId);
+        const getMaxCustomerId = await customerService.maxId(trx);
+        let maxCustomerId = parseInt(getMaxCustomerId);
+        const getMaxUserId = await baseUserService.maxId(trx);
+        let maxUserId = parseInt(getMaxUserId);
 
         const output = channelPartners.map((cp) => {
           const cpMeta = [
-            this.createMeta(maxMetaFieldValueId, metaFieldCustomerTypeNameId, cp['Channel Partner'].trim()),
-            this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCpIDId, cp['CP ID'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
-            this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeChannelPartnerNameId, cp['Channel Partner'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            this.createMeta(++maxMetaFieldValueId, metaFieldCustomerTypeNameId, cp['Channel Partner'].trim()),
+            this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCpIDId, cp['CP ID'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeChannelPartnerNameId, cp['Channel Partner'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Email'].trim() !== 'NULL'
-              || cp['Email'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeEmailId, cp['Email'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Email'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeEmailId, cp['Email'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Office Phone'].trim() !== 'NULL'
-              || cp['Office Phone'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficePhoneId, cp['Office Phone'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
-            (cp['Office Fax'].trim() !== 'NULL' || cp['Office Fax'].trim() !== '0'
-              || cp['Office Fax'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficeFaxId, cp['Office Fax'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Office Phone'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficePhoneId, cp['Office Phone'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            (cp['Office Fax'].trim() !== 'NULL' && cp['Office Fax'].trim() !== '0'
+              && cp['Office Fax'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficeFaxId, cp['Office Fax'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['ACN/ABN'].trim() !== 'NULL'
-              || cp['ACN/ABN'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeAbnAcnId, cp['ACN/ABN'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
-            cp['Office Street'].trim() !== 'NULL' && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficeStreetId, cp['Office Street'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
-            cp['Office City'].trim() !== 'NULL' && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficeCityId, cp['Office City'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
-            cp['Office State'].trim() !== 'NULL' && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficeStateId, cp['Office State'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
-            cp['Office Postcode'].trim() !== 'NULL' && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficePostcodeId, cp['Office Postcode'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['ACN/ABN'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeAbnAcnId, cp['ACN/ABN'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            cp['Office Street'].trim() !== 'NULL' && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficeStreetId, cp['Office Street'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            cp['Office City'].trim() !== 'NULL' && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficeCityId, cp['Office City'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            cp['Office State'].trim() !== 'NULL' && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficeStateId, cp['Office State'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+            cp['Office Postcode'].trim() !== 'NULL' && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficePostcodeId, cp['Office Postcode'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Office Country'].trim() !== 'NULL'
-              || cp['Office Country'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeOfficeCountryId, cp['Office Country'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Office Country'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeOfficeCountryId, cp['Office Country'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Postal Street'].trim() !== 'NULL'
-              || cp['Postal Street'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypePostalStreetId, cp['Postal Street'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Postal Street'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypePostalStreetId, cp['Postal Street'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Postal City'].trim() !== 'NULL'
-              || cp['Postal City'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypePostalCityId, cp['Postal City'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Postal City'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypePostalCityId, cp['Postal City'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Postal State'].trim() !== 'NULL'
-              || cp['Postal State'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypePostalStateId, cp['Postal State'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Postal State'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypePostalStateId, cp['Postal State'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Postal Postcode'].trim() !== 'NULL'
-              || cp['Postal Postcode'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypePostalPostcodeId, cp['Postal Postcode'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Postal Postcode'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypePostalPostcodeId, cp['Postal Postcode'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
             (cp['Postal Country'].trim() !== 'NULL'
-              || cp['Postal Country'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypePostalCountryId, cp['Postal Country'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
+              && cp['Postal Country'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypePostalCountryId, cp['Postal Country'].trim(), metaFieldGroupAccountTypeIdChannelPartner),
           ].filter(Boolean);
 
           const cpCustomers = customers.filter(c => c['CP ID'].trim() === cp['CP ID'].trim());
           const customerChildren = cpCustomers.map((cust) => {
             const custMeta = [
-              this.createMeta(maxMetaFieldValueId, metaFieldCustomerTypeNameId, cust['Customer Name'].trim()),
-              this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerIDId, cust['Customer ID'].trim(), metaFieldGroupAccountTypeIdCustomer),
-              this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerNameId, cust['Customer Name'].trim(), metaFieldGroupAccountTypeIdCustomer),
+              this.createMeta(++maxMetaFieldValueId, metaFieldCustomerTypeNameId, cust['Customer Name'].trim()),
+              this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerIDId, cust['Customer ID'].trim(), metaFieldGroupAccountTypeIdCustomer),
+              this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerNameId, cust['Customer Name'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Level'].trim() !== 'NULL'
-                || cust['Level'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerLevelId, cust['Level'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Level'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerLevelId, cust['Level'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Sub Address Type'].trim() !== 'NULL'
-                || cust['Sub Address Type'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerSubAddressTypeId, cust['Sub Address Type'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Sub Address Type'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerSubAddressTypeId, cust['Sub Address Type'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Sub Address Number'].trim() !== 'NULL'
-                || cust['Sub Address Number'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerSubAddressNumberId, cust['Sub Address Number'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Sub Address Number'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerSubAddressNumberId, cust['Sub Address Number'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Street Number'].trim() !== 'NULL'
-                || cust['Street Number'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeStreetNumberId, cust['Street Number'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Street Number'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeStreetNumberId, cust['Street Number'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Street Number Suffix'].trim() !== 'NULL'
-                || cust['Street Number Suffix'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeStreetNumberSuffixId, cust['Street Number Suffix'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Street Number Suffix'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeStreetNumberSuffixId, cust['Street Number Suffix'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Street Name'].trim() !== 'NULL'
-                || cust['Street Name'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeStreetNameId, cust['Street Name'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Street Name'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeStreetNameId, cust['Street Name'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Street Type'].trim() !== 'NULL'
-                || cust['Street Type'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeStreetTypeId, cust['Street Type'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Street Type'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeStreetTypeId, cust['Street Type'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Street Type Suffix'].trim() !== 'NULL'
-                || cust['Street Type Suffix'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeStreetTypeSuffixId, cust['Street Type Suffix'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Street Type Suffix'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeStreetTypeSuffixId, cust['Street Type Suffix'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Suburb'].trim() !== 'NULL'
-                || cust['Suburb'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSuburbId, cust['Suburb'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Suburb'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSuburbId, cust['Suburb'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['State'].trim() !== 'NULL'
-                || cust['State'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeStateId, cust['State'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['State'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeStateId, cust['State'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Postcode'].trim() !== 'NULL'
-                || cust['Postcode'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypePostcodeId, cust['Postcode'].trim(), metaFieldGroupAccountTypeIdCustomer),
-              (cust['Office Phone'].trim() !== 'NULL' || cust['Office Phone'].trim() !== '0'
-                || cust['Office Phone'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerOfficePhoneId, cust['Office Phone'].trim(), metaFieldGroupAccountTypeIdCustomer),
+                && cust['Postcode'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypePostcodeId, cust['Postcode'].trim(), metaFieldGroupAccountTypeIdCustomer),
+              (cust['Office Phone'].trim() !== 'NULL' && cust['Office Phone'].trim() !== '0'
+                && cust['Office Phone'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerOfficePhoneId, cust['Office Phone'].trim(), metaFieldGroupAccountTypeIdCustomer),
               (cust['Email'].trim() !== 'NULL'
-                || cust['Email'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerEmailId, cust['Email'].trim(), metaFieldGroupAccountTypeIdCustomer),
-              this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeCustomerAndSiteCpIDId, cust['CP ID'].trim(), metaFieldGroupAccountTypeIdCustomer),
-            ];
+                && cust['Email'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerEmailId, cust['Email'].trim(), metaFieldGroupAccountTypeIdCustomer),
+              this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerAndSiteCpIDId, cust['CP ID'].trim(), metaFieldGroupAccountTypeIdCustomer),
+            ].filter(Boolean);
 
             const custSites = sites.filter(s => s['CP ID'].trim() === cp['CP ID'].trim() && s['Customer ID'].trim() === cust['Customer ID'].trim());
             const siteChildren = custSites.map(site => {
               const siteMeta = [
-                this.createMeta(maxMetaFieldValueId, metaFieldCustomerTypeNameId, site['Site Name'].trim()),
+                this.createMeta(++maxMetaFieldValueId, metaFieldCustomerTypeNameId, site['Site Name'].trim()),
                 (site['Tax Type'].trim() !== 'NULL'
-                  || site['Tax Type'].trim() !== '0') && this.createMeta(maxMetaFieldValueId, metaFieldCustomerTypeGSTId, null, null, true), // always 't'
-                this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteIDId, site['Site ID'].trim(), metaFieldGroupAccountTypeIdSite),
-                this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteNameId, site['Site Name'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Tax Type'].trim() !== '0') && this.createMeta(++maxMetaFieldValueId, metaFieldCustomerTypeGSTId, null, null, true), // always 't'
+                this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteIDId, site['Site ID'].trim(), metaFieldGroupAccountTypeIdSite),
+                this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteNameId, site['Site Name'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Level'].trim() !== 'NULL'
-                  || site['Level'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteLevelId, site['Level'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Level'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteLevelId, site['Level'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Sub Address Type'].trim() !== 'NULL'
-                  || site['Sub Address Type'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteSubAddressTypeId, site['Sub Address Type'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Sub Address Type'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteSubAddressTypeId, site['Sub Address Type'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Sub Address Number'].trim() !== 'NULL'
-                  || site['Sub Address Number'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteSubAddressNumberId, site['Sub Address Number'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Sub Address Number'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteSubAddressNumberId, site['Sub Address Number'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Street Number'].trim() !== 'NULL'
-                  || site['Street Number'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteStreetNumberId, site['Street Number'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Street Number'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteStreetNumberId, site['Street Number'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Street Number Suffix'].trim() !== 'NULL'
-                  || site['Street Number Suffix'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteStreetNumberSuffixId, site['Street Number Suffix'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Street Number Suffix'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteStreetNumberSuffixId, site['Street Number Suffix'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Street Name'].trim() !== 'NULL'
-                  || site['Street Name'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteStreetNameId, site['Street Name'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Street Name'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteStreetNameId, site['Street Name'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Street Type'].trim() !== 'NULL'
-                  || site['Street Type'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteStreetTypeId, site['Street Type'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Street Type'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteStreetTypeId, site['Street Type'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Street Type Suffix'].trim() !== 'NULL'
-                  || site['Street Type Suffix'].trim() !== '') && this.createMeta(maxMetaFieldValueId, metaFieldAccountTypeSiteStreetTypeSuffixId, site['Street Type Suffix'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Street Type Suffix'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteStreetTypeSuffixId, site['Street Type Suffix'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Suburb'].trim() !== 'NULL'
-                  || site['Suburb'].trim() !== '') && this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeSiteSuburbId, site['Suburb'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['Suburb'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteSuburbId, site['Suburb'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['State'].trim() !== 'NULL'
-                  || site['State'].trim() !== '') && this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeSiteStateId, site['State'].trim(), metaFieldGroupAccountTypeIdSite),
+                  && site['State'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteStateId, site['State'].trim(), metaFieldGroupAccountTypeIdSite),
                 (site['Postcode'].trim() !== 'NULL'
-                  || site['Postcode'].trim() !== '') && this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeSitePostcodeId, site['Postcode'].trim(), metaFieldGroupAccountTypeIdSite),
-                this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeSiteCountryId, site['Country'].trim(), metaFieldGroupAccountTypeIdSite),
-                this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeSiteCustomerIDId, site['Customer ID'].trim(), metaFieldGroupAccountTypeIdSite),
-                this.createMeta(maxMetaFieldValueId, input.metaFieldAccountTypeSiteCustomerCpIDId, site['CP ID'].trim(), metaFieldGroupAccountTypeIdSite),
-              ];
-              return createAccount({
+                  && site['Postcode'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSitePostcodeId, site['Postcode'].trim(), metaFieldGroupAccountTypeIdSite),
+                (site['Country'].trim() !== 'NULL'
+                  && site['Country'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteCountryId, site['Country'].trim(), metaFieldGroupAccountTypeIdSite),
+                (site['Site Main Phone'].trim() !== 'NULL'
+                  && site['Site Main Phone'].trim() !== '') && this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteMainPhoneId, site['Site Main Phone'].trim(), metaFieldGroupAccountTypeIdSite),
+                this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeSiteCustomerIDId, site['Customer ID'].trim(), metaFieldGroupAccountTypeIdSite),
+                this.createMeta(++maxMetaFieldValueId, metaFieldAccountTypeCustomerAndSiteCpIDId, site['CP ID'].trim(), metaFieldGroupAccountTypeIdSite),
+              ].filter(Boolean);
+              return this.createAccount({
+                customerId: ++maxCustomerId,
                 userName: site['Site ID'],
                 accountTypeId: metaFieldGroupAccountTypeIdSite,
                 metaFields: siteMeta,
+                nextInvoiceDayOfPeriod: cp['Billing Date'].trim() !== 'NULL' && cp['Billing Date'].trim() !== '' ? parseInt(cp['Billing Date'].trim()) : 1,
+                nextInoviceDate: cp['Billing Date'].trim() !== 'NULL' && cp['Billing Date'].trim() !== '' ? `2025-08-${cp['Billing Date'].trim() === '1' ? '01' : cp['Billing Date'].trim()}` : '2025-08-01',
+                userId: ++maxUserId
               });
             });
 
-            return createAccount({
+            return this.createAccount({
+              customerId: ++maxCustomerId,
               userName: cust['Customer ID'],
               accountTypeId: metaFieldGroupAccountTypeIdCustomer,
               metaFields: custMeta,
               isParent: true,
               child: siteChildren,
+              nextInvoiceDayOfPeriod: cp['Billing Date'].trim() !== 'NULL' && cp['Billing Date'].trim() !== '' ? parseInt(cp['Billing Date'].trim()) : 1,
+              nextInoviceDate: cp['Billing Date'].trim() !== 'NULL' && cp['Billing Date'].trim() !== '' ? `2025-08-${cp['Billing Date'].trim() === '1' ? '01' : cp['Billing Date'].trim()}` : '2025-08-01',
+              userId: ++maxUserId
             });
           });
 
-          return createAccount({
+          return this.createAccount({
+            customerId: ++maxCustomerId,
             userName: cp['CP ID'],
             accountTypeId: metaFieldGroupAccountTypeIdChannelPartner,
             metaFields: cpMeta,
             isParent: cpCustomers.length > 0,
             child: customerChildren,
+            nextInvoiceDayOfPeriod: cp['Billing Date'].trim() !== 'NULL' && cp['Billing Date'].trim() !== '' ? parseInt(cp['Billing Date'].trim()) : 1,
+            nextInoviceDate: cp['Billing Date'].trim() !== 'NULL' && cp['Billing Date'].trim() !== '' ? `2025-08-${cp['Billing Date'].trim() === '1' ? '01' : cp['Billing Date'].trim()}` : '2025-08-01',
+            userId: ++maxUserId
           });
         });
+
+        const upsertGraphInsertMissingNoDeleteNoUpdateNoRelate = await customerService.upsertGraphInsertMissingNoDeleteNoUpdateNoRelate(output, trx);
+        if (upsertGraphInsertMissingNoDeleteNoUpdateNoRelate) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: User Hierarchy Created",
+              data: null
+            }
+          };
+        }
 
         return {
           status: 200,
           data: {
-            success: true,
-            message: "Success: User Hierarchy",
-            data: { channelPartners, customers, sites }
+            success: false,
+            message: "Failure: User Hierarchy not created",
+            data: output
           }
         };
       });
@@ -942,29 +989,29 @@ class controller {
       header: true,
       skipEmptyLines: true,
     });
-    return parsed.data;
+    return fileName === 'Channel Partners.csv' ? parsed.data.slice(0, 3) : parsed.data;
   };
 
-  createUser({ userName }) {
+  createUser({ userName, userId }) {
     return {
-      id: ++userId,
-      entityId: input.entityId,
+      id: userId,
+      entityId: 20,
       deleted: 0,
-      languageId: input.languageId,
-      statusId: input.statusId,
-      subscriberStatus: input.subscriberStatus,
-      currencyId: input.currencyId,
-      createDatetime: today,
+      languageId: 1,
+      statusId: 1,
+      subscriberStatus: 9,
+      currencyId: 11,
+      createDatetime: new Date(),
       userName,
       optlock: 1,
       encryptionScheme: 0,
-      userRoleMap: { roleId: input.roleId },
+      userRoleMap: { roleId: 32 },
     };
   }
 
-  createAccount({ userName, accountTypeId, metaFields, isParent = false, child = [] }) {
+  createAccount({ customerId, userName, accountTypeId, metaFields, isParent = false, child = [], nextInvoiceDayOfPeriod, nextInoviceDate, userId }) {
     return {
-      id: ++customerId,
+      id: customerId,
       invoiceDeliveryMethodId: 1,
       isParent: isParent ? 1 : 0,
       invoiceChild: 0,
@@ -973,11 +1020,11 @@ class controller {
       creditLimit: 0,
       autoRecharge: 0,
       useParentPricing: 'f',
-      mainSubscriptOrderPeriodId: input.mainSubscriptOrderPeriodId,
-      nextInvoiceDayOfPeriod: 1,
-      nextInoviceDate: nextInvoiceDate,
+      mainSubscriptOrderPeriodId: 200,
+      nextInvoiceDayOfPeriod,
+      nextInoviceDate,
       accountTypeId,
-      user: createUser(userName),
+      user: this.createUser({ userName, userId }),
       metaFieldValue: metaFields,
       ...(child.length ? { child } : {}),
     };
@@ -985,7 +1032,7 @@ class controller {
 
   createMeta(metaFieldId, metaFieldNameId, stringValue, groupId = null, booleanValue = null) {
     const meta = {
-      id: ++metaFieldId,
+      id: metaFieldId,
       metaFieldNameId,
     };
     if (booleanValue !== null) {

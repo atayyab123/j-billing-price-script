@@ -82,6 +82,17 @@ class service {
     return data;
   }
 
+  async getAccountTypeChannelPartnerNameId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Name')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 298)
+      .first();
+    return data;
+  }
+
   async getAccountTypeCpEmailId(trx) {
     const data = await model.query(trx)
       .where('name', 'Email')
@@ -518,6 +529,72 @@ class service {
       .andWhere('dataType', 'STRING')
       .andWhere('entityId', 20)
       .andWhere('id', 268)
+      .first();
+    return data;
+  }
+
+  async getAccountTypeSiteSuburbId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Suburb')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 278)
+      .first();
+    return data;
+  }
+
+  async getAccountTypeSiteStateId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'State')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 258)
+      .first();
+    return data;
+  }
+
+  async getAccountTypeSitePostcodeId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Postcode')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 257)
+      .first();
+    return data;
+  }
+
+  async getAccountTypeSiteCountryId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Country')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 299)
+      .first();
+    return data;
+  }
+
+  async getAccountTypeSiteMainPhoneId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Site Main Phone')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 261)
+      .first();
+    return data;
+  }
+
+  async getAccountTypeSiteCustomerIDId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Customer ID')
+      .andWhere('entityType', 'ACCOUNT_TYPE')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 297)
       .first();
     return data;
   }
