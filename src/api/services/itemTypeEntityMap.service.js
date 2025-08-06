@@ -7,6 +7,13 @@ class service {
     console.log('upsertGraphInsertMissingNoDeleteNoUpdateNoRelate completed successfully');
     return data;
   }
+  
+  async upsertGraphInsertMissingNoDeleteRelate(payload, trx) {
+    console.log('upsertGraphInsertMissingNoDeleteRelate started')
+    const data = await model.query(trx).upsertGraphAndFetch(payload, { insertMissing: true, noDelete: true, relate: true });
+    console.log('upsertGraphInsertMissingNoDeleteRelate completed successfully');
+    return data;
+  }
 
   async getProductRelation(payload, trx) {
     const data = await model.query(trx)
@@ -14,7 +21,7 @@ class service {
         model.relatedQuery('itemType').whereIn('description', payload).andWhere('entityId', 20)
       )
       .andWhere('entityId', 20)
-      .withGraphFetched('[itemType.[item.[internationalDescription, metaFieldValue]]]');
+      .withGraphFetched('[itemType.[item(filterActive).[itemEntityMap, internationalDescription, metaFieldValue]]]');
     return data;
   }
 

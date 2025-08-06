@@ -684,7 +684,7 @@ class controller {
   async products() {
     try {
       const returnValue = await Model.transaction(async (trx) => {
-        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Products.csv');
+        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Products_Updated_20250805.csv');
         const csvFileContent = fs.readFileSync(csvFilePath, 'utf8');
         // Parse the CSV content
         const json = Papa.parse(csvFileContent, {
@@ -694,6 +694,12 @@ class controller {
 
         const data = json.data; // Parse the CSV content
         console.log('Products data length:', data.length);
+        const toRemove = ['3120100_BusinessLine', '2100000_SIP Phone'];
+        const filteredData = data.filter(item => !toRemove.includes(item["Group Code"].trim()));
+        console.log('Products filteredData length:', filteredData.length);
+        // const filteredRemoveData = data.filter(item => toRemove.includes(item["Group Code"].trim()));
+        // console.log('Products filteredRemoveData length:', filteredRemoveData.length);
+        // const getProductRelation = await itemTypeEntityMapService.getProductRelation(toRemove, trx);
 
         const getMaxItemTypeId = await itemTypeService.maxId(trx);
         let maxItemTypeId = parseInt(getMaxItemTypeId);
@@ -714,9 +720,89 @@ class controller {
         const getEstablishmentCharge = await metaFieldNameService.getEstablishmentCharge(trx);
         const metaFieldNameIdEstablishmentCharge = parseInt(getEstablishmentCharge.id);
 
+        // // Convert filteredRemoveData into a map by groupCode
+        // const groupedData = {};
+        // filteredRemoveData.forEach(entry => {
+        //   if (!groupedData[entry["Group Code"].trim()]) {
+        //     groupedData[entry["Group Code"].trim()] = [];
+        //   }
+        //   groupedData[entry["Group Code"].trim()].push(entry);
+        // });
+
+        // // Convert filteredRemoveData into a lookup map
+        // const productDataMap = {};
+        // filteredRemoveData.forEach(entry => {
+        //   productDataMap[entry["Product Code"].trim()] = entry;
+        // });
+
+        // const hasField = (metaFieldValueArray, metaFieldNameId) =>
+        //   metaFieldValueArray.some(mv => mv.metaFieldNameId === metaFieldNameId);
+
+        // // Final output
+        // const finalOutput = getProductRelation.map(relation => {
+        //   const { description } = relation.itemType;
+        //   const relatedProducts = groupedData[description] || [];
+        //   const existingInternalNumbers = relation.itemType.item.map(it => it.internalNumber);
+        //   const items = relation.itemType.item;
+
+        //   // Add missing metaFieldValues to existing items
+        //   items.forEach(item => {
+        //     const product = productDataMap[item.internalNumber];
+        //     if (!product) return;
+
+        //     if (!item.metaFieldValue) item.metaFieldValue = [];
+
+        //     if (!hasField(item.metaFieldValue, metaFieldNameIdGroupCode)) {
+        //       item.metaFieldValue.push(this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdGroupCode, "string", product["Group Code"].trim()));
+        //     }
+        //     if (!hasField(item.metaFieldValue, metaFieldNameIdTerm)) {
+        //       item.metaFieldValue.push(this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdTerm, "decimal", product["Term"].trim()));
+        //     }
+        //     if (!hasField(item.metaFieldValue, metaFieldNameIdTaxScheme)) {
+        //       item.metaFieldValue.push(this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdTaxScheme, "string", "TAX_GST"));
+        //     }
+        //     if (!hasField(item.metaFieldValue, metaFieldNameIdRecurringCharge)) {
+        //       item.metaFieldValue.push(this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdRecurringCharge, "decimal", product["Recurring Charge"].trim()));
+        //     }
+        //     if (!hasField(item.metaFieldValue, metaFieldNameIdEstablishmentCharge)) {
+        //       item.metaFieldValue.push(this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdEstablishmentCharge, "decimal", product["Establishment Charge"].trim()));
+        //     }
+        //   });
+
+        //   relatedProducts.forEach(product => {
+        //     if (!existingInternalNumbers.includes(product["Product Code"].trim())) {
+        //       relation.itemType.item.push({
+        //         id: ++maxItemId,
+        //         internalNumber: product["Product Code"].trim(),
+        //         entityId: 20,
+        //         optlock: 1,
+        //         priceManual: 0,
+        //         itemEntityMap: {
+        //           entityId: 20
+        //         },
+        //         internationalDescription: {
+        //           tableId: itemTableId,
+        //           psudoColumn: "description",
+        //           languageId: 1,
+        //           content: product["Service Name"].trim()
+        //         },
+        //         metaFieldValue: [
+        //           this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdGroupCode, "string", product["Group Code"].trim()),
+        //           this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdTerm, "decimal", product["Term"].trim()),
+        //           this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdTaxScheme, "string", "TAX_GST"),
+        //           this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdRecurringCharge, "decimal", product["Recurring Charge"].trim()),
+        //           this.createMetaFieldValue(++maxMetaFieldValueId, metaFieldNameIdEstablishmentCharge, "decimal", product["Establishment Charge"].trim())
+        //         ]
+        //       });
+        //     }
+        //   });
+
+        //   return relation;
+        // });
+
         const grouped = {};
 
-        data.forEach(entry => {
+        filteredData.forEach(entry => {
           const group = entry["Group Code"].trim();
           if (!grouped[group]) {
             grouped[group] = [];
@@ -809,12 +895,24 @@ class controller {
             }
           };
         }
+
+        // const upsertGraphInsertMissingNoDeleteRelate = await itemTypeEntityMapService.upsertGraphInsertMissingNoDeleteRelate(finalOutput, trx);
+        // if (upsertGraphInsertMissingNoDeleteRelate) {
+        //   return {
+        //     status: 200,
+        //     data: {
+        //       success: true,
+        //       message: "Success: Products Upsert",
+        //       data: upsertGraphInsertMissingNoDeleteRelate,
+        //     }
+        //   };
+        // }
         return {
           status: 200,
           data: {
             success: false,
             message: "Failure: No records Inserted",
-            data: { data, output },
+            data: { filteredData, output },
           }
         };
       });
@@ -839,6 +937,20 @@ class controller {
       };
     }
   }
+
+  createMetaFieldValue(metaFieldValueId, metaFieldNameId, dtype, value) {
+    const meta = {
+      id: metaFieldValueId,
+      metaFieldNameId,
+      dtype
+    };
+    if (dtype === "decimal") {
+      meta.decimalValue = parseFloat(value);
+    } else if (dtype === "string") {
+      meta.stringValue = value;
+    }
+    return meta;
+  };
 
   async userHierarchy() {
     try {
@@ -1402,18 +1514,18 @@ class controller {
     } catch (error) {
       const csv = Papa.unparse([{ error: error?.message }]);
       const folderName =
-        __dirname + "/../../../.." + `/productUpdateErrorFiles`;
+        __dirname + "/../../../.." + `/productDeleteErrorFiles`;
       if (!fs.existsSync(folderName)) {
         fs.mkdirSync(folderName, { recursive: true });
       }
-      const filename = `ProductUpdate-ErrorFile`;
+      const filename = `ProductDelete-ErrorFile`;
       fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
-      console.error("Error on Product Update UpdateGraph:", error);
+      console.error("Error on Product Delete UpdateGraph:", error);
       return {
         status: 200,
         data: {
           success: false,
-          message: `Catch Error: Error on Product Update UpsertGraph. ${error.message}`,
+          message: `Catch Error: Error on Product Delete UpsertGraph. ${error.message}`,
           error
         }
       };
