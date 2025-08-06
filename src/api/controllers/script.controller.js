@@ -11,6 +11,10 @@ const itemTypeEntityMapService = require("../services/itemTypeEntityMap.service"
 const metaFieldGroupService = require("../services/metaFieldGroup.service");
 const customerService = require("../services/customer.service");
 const baseUserService = require("../services/baseUser.service");
+const itemTypeMapService = require("../services/itemTypeMap.service");
+const internationalDescriptionService = require("../services/internationalDescription.service");
+const itemMetaFieldMapService = require("../services/itemMetaFieldMap.service");
+const itemEntityMapService = require("../services/itemEntityMap.service");
 
 class controller {
   async priceUpdateSheetOne() {
@@ -1123,7 +1127,7 @@ class controller {
           data: {
             success: false,
             message: "Failure: User Hierarchy not created",
-            data: output
+            data: channelPartners
           }
         };
       });
@@ -1213,6 +1217,207 @@ class controller {
       meta.metafieldGroupMetaFieldMap = { metafieldGroupId: groupId };
     }
     return meta;
+  }
+
+  async serviceOrderLine() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Services.csv');
+        const csvFileContent = fs.readFileSync(csvFilePath, 'utf8');
+        // Parse the CSV content
+        const json = Papa.parse(csvFileContent, {
+          header: true, // if you want to treat the first line as headers
+          skipEmptyLines: true,
+        });
+
+        const data = json.data.filter(obj => obj['Service Status'] === 'Active'); // Parse the CSV content
+        console.log('Products data length:', data.length);
+
+        const uniqueCpIds = [
+          ...new Set(
+            data.map(item => item['CP ID'].trim())
+          )
+        ];
+        console.log('Unique CP IDs length:', uniqueCpIds.length);
+
+        const uniqueProductCodeIds = [
+          ...new Set(
+            data.map(item => item['Product Code'].trim())
+          )
+        ];
+        console.log('Unique CP IDs length:', uniqueCpIds.length);
+
+        const getUserHierarchy = await baseUserService.getUserHierarchy(uniqueCpIds, trx);
+        const getIdAndInternalNumber = await itemService.getIdAndInternalNumber(trx);
+        const remainingObjects = uniqueProductCodeIds.filter(
+          obj => !getIdAndInternalNumber.some(record => record.internalNumber.includes(obj))
+        );
+        const filteredRemainingObjects = data.filter(obj => remainingObjects.includes(obj['Product Code'].trim()));
+        const csv = Papa.unparse(filteredRemainingObjects);
+        const folderName =
+          __dirname + "/../../../.." + `/serviceProductCodeNotFoundFiles`;
+        if (!fs.existsSync(folderName)) {
+          fs.mkdirSync(folderName, { recursive: true });
+        }
+        const filename = `Service-ProductCodeNotFoundFile`;
+        fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+
+        return {
+          status: 200,
+          data: {
+            success: true,
+            message: "Success: Service File Data Active",
+            data: getIdAndInternalNumber
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/serviceOrderLineErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `ServiceOrderLine-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Service Order Line UpdateGraph:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Service Order Line UpsertGraph. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
+
+  async productsDelete() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Products (1) - Products (1).csv');
+        const csvFileContent = fs.readFileSync(csvFilePath, 'utf8');
+        // Parse the CSV content
+        const json = Papa.parse(csvFileContent, {
+          header: true, // if you want to treat the first line as headers
+          skipEmptyLines: true,
+        });
+
+        const data = json.data
+        const uniqueGroupCodes = [
+          ...new Set(
+            data.map(item => item['Group Code'].trim())
+          )
+        ];
+        console.log('Unique Group Codes length:', uniqueGroupCodes.length);
+        const toRemove = ['3120100_BusinessLine', '2100000_SIP Phone'];
+        const filteredGroupCodes = uniqueGroupCodes.filter(item => !toRemove.includes(item));
+        const getProductRelation = await itemTypeEntityMapService.getProductRelation(filteredGroupCodes, trx);
+        const itemTypeIds = [];
+        const itemIds = [];
+        const metaFieldValueIds = [];
+
+        getProductRelation.forEach(entry => {
+          // itemTypeId
+          if (entry.itemTypeId) {
+            itemTypeIds.push(entry.itemTypeId);
+          }
+
+          const items = entry.itemType?.item || [];
+
+          items.forEach(item => {
+            // item.id
+            itemIds.push(item.id);
+
+            // metaFieldValue.id
+            item.metaFieldValue?.forEach(meta => {
+              metaFieldValueIds.push(meta.id);
+            });
+          });
+        });
+
+        console.log("itemTypeIds.length:", itemTypeIds.length);
+        console.log("itemIds.length:", itemIds.length);
+        console.log("metaFieldValueIds.length:", metaFieldValueIds.length);
+
+        const deleteItemTypeEntityMapByItemTypeId = await itemTypeEntityMapService.deleteItemTypeEntityMapByItemTypeId(itemTypeIds, trx);
+        console.log("deleteItemTypeEntityMapByItemTypeId:", deleteItemTypeEntityMapByItemTypeId);
+        const deleteItemTypeMapByItemTypeId = await itemTypeMapService.deleteItemTypeMapByItemTypeId(itemTypeIds, trx);
+        console.log("deleteItemTypeMapByItemTypeId:", deleteItemTypeMapByItemTypeId);
+        const deleteInternationalDescriptionByItemId = await internationalDescriptionService.deleteInternationalDescriptionByItemId(itemIds, trx);
+        console.log("deleteInternationalDescriptionByItemId:", deleteInternationalDescriptionByItemId);
+        const deleteItemEntityMapByItemId = await itemEntityMapService.deleteItemEntityMapByItemId(itemIds, trx);
+        console.log("deleteItemEntityMapByItemId:", deleteItemEntityMapByItemId);
+        const deleteItemMetaFieldMapByMetaFieldValueId = await itemMetaFieldMapService.deleteItemMetaFieldMapByMetaFieldValueId(metaFieldValueIds, trx);
+        console.log("deleteItemMetaFieldMapByMetaFieldValueId:", deleteItemMetaFieldMapByMetaFieldValueId);
+        const deleteItemById = await itemService.deleteItemById(itemIds, trx);
+        console.log("deleteItemById:", deleteItemById);
+        const deleteItemTypeById = await itemTypeService.deleteItemTypeById(itemTypeIds, trx);
+        console.log("deleteItemTypeById:", deleteItemTypeById);
+
+        if (deleteItemTypeEntityMapByItemTypeId.length > 0
+          && deleteItemTypeMapByItemTypeId.length > 0
+          && deleteInternationalDescriptionByItemId.length > 0
+          && deleteItemEntityMapByItemId.length > 0
+          && deleteItemMetaFieldMapByMetaFieldValueId.length > 0
+          && deleteItemById.length > 0
+          && deleteItemTypeById.length > 0
+        ) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Products Deleted",
+              data: {
+                deleteItemTypeEntityMapByItemTypeId,
+                deleteItemTypeMapByItemTypeId,
+                deleteInternationalDescriptionByItemId,
+                deleteItemEntityMapByItemId,
+                deleteItemMetaFieldMapByMetaFieldValueId,
+                deleteItemById,
+                deleteItemTypeById
+              }
+            }
+          }
+        }
+        return {
+          status: 200,
+          data: {
+            success: false,
+            message: "Failure: Products not deleted",
+            data: {
+              deleteItemTypeEntityMapByItemTypeId,
+              deleteItemTypeMapByItemTypeId,
+              deleteInternationalDescriptionByItemId,
+              deleteItemEntityMapByItemId,
+              deleteItemMetaFieldMapByMetaFieldValueId,
+              deleteItemById,
+              deleteItemTypeById
+            }
+          }
+        }
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/productUpdateErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `ProductUpdate-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Product Update UpdateGraph:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Product Update UpsertGraph. ${error.message}`,
+          error
+        }
+      };
+    }
   }
 }
 

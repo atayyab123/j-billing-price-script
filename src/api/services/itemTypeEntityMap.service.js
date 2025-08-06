@@ -7,5 +7,22 @@ class service {
     console.log('upsertGraphInsertMissingNoDeleteNoUpdateNoRelate completed successfully');
     return data;
   }
+
+  async getProductRelation(payload, trx) {
+    const data = await model.query(trx)
+      .whereExists(
+        model.relatedQuery('itemType').whereIn('description', payload).andWhere('entityId', 20)
+      )
+      .andWhere('entityId', 20)
+      .withGraphFetched('[itemType.[item.[internationalDescription, metaFieldValue]]]');
+    return data;
+  }
+
+  async deleteItemTypeEntityMapByItemTypeId(itemTypeId, trx) {
+    console.log('deleteItemTypeEntityMapByItemTypeId started');
+    const data = await model.query(trx).delete().whereIn('itemTypeId', itemTypeId).andWhere('entityId', 20);
+    console.log('deleteItemTypeEntityMapByItemTypeId completed successfully');
+    return data;
+  }
 }
 module.exports = new service();
