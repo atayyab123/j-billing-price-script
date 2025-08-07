@@ -598,5 +598,170 @@ class service {
       .first();
     return data;
   }
+
+  async getOrderServiceIDId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Service ID')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 196)
+      .first();
+    return data;
+  }
+
+  async getOrderCpIDId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'CP ID')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 198)
+      .first();
+    return data;
+  }
+
+  async getOrderCustomerIDId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Customer ID')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 199)
+      .first();
+    return data;
+  }
+
+  async getOrderServiceStatusId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Service Status')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 200)
+      .first();
+    return data;
+  }
+
+  async getOrderServiceDescriptionId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Service Description')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 201)
+      .first();
+    return data;
+  }
+
+  async getOrderProductCodeId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Product Code')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 202)
+      .first();
+    return data;
+  }
+
+  async getOrderLegacyIDId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Legacy ID')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 240)
+      .first();
+    return data;
+  }
+
+  async getOrderESIDId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'ES ID')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 302)
+      .first();
+    return data;
+  }
+
+  async getOrderDIDStartId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'DID Start')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 303)
+      .first();
+    return data;
+  }
+
+  async getOrderDIDEndId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'DID End')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 304)
+      .first();
+    return data;
+  }
+
+  async getOrderIPAddressId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'IP Address')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 243)
+      .first();
+    return data;
+  }
+
+  async getOrderContractTermId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Contract Term')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 244)
+      .first();
+    return data;
+  }
+
+  async getOrderSiteNameId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Site Name')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 245)
+      .first();
+    return data;
+  }
+
+  async getOrderCustomerNameId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'Customer Name')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 247)
+      .first();
+    return data;
+  }
+
+  async getOrderCPNameId(trx) {
+    const data = await model.query(trx)
+      .where('name', 'CP Name')
+      .andWhere('entityType', 'ORDER')
+      .andWhere('dataType', 'STRING')
+      .andWhere('entityId', 20)
+      .andWhere('id', 248)
+      .first();
+    return data;
+  }
 }
 module.exports = new service();

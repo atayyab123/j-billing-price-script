@@ -12,5 +12,12 @@ class service {
     console.log('upsertGraphInsertMissingNoDeleteNoUpdateNoRelate completed successfully');
     return data;
   }
+
+  async upsertGraphInsertMissingNoDeleteRelate(payload, trx) {
+    console.log('upsertGraphInsertMissingNoDeleteRelate started')
+    const data = await model.query(trx).upsertGraph(payload,  { insertMissing: true, noDelete: true, relate: true });
+    console.log('upsertGraphInsertMissingNoDeleteRelate completed successfully');
+    return data;
+  }
 }
 module.exports = new service();
