@@ -1991,6 +1991,272 @@ class controller {
       };
     }
   }
+
+  async productsUpdate() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        // Fetched Full Product Sheet
+        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Products_Updated_20250805.csv');
+        const csvFileContent = fs.readFileSync(csvFilePath, 'utf8');
+        // Parse the CSV content
+        const json = Papa.parse(csvFileContent, {
+          header: true, // if you want to treat the first line as headers
+          skipEmptyLines: true,
+        });
+        const data = json.data; // Parse the CSV content
+        console.log('Products data length:', data.length);
+
+        // Fetched Missing Product Sheet
+        const csvFilePathMissingProduct = path.join(__dirname, '/../../..', 'files', 'MissingProductCostOptions.csv');
+        const csvFileContentMissingProduct = fs.readFileSync(csvFilePathMissingProduct, 'utf8');
+        // Parse the CSV content
+        const jsonMissingProduct = Papa.parse(csvFileContentMissingProduct, {
+          header: true, // if you want to treat the first line as headers
+          skipEmptyLines: true,
+        });
+        const dataMissingProduct = jsonMissingProduct.data; // Parse the CSV content
+        console.log('Missing Products data length:', dataMissingProduct.length);
+
+        // Fetched Unique Missing Product Codes
+        const uniqueMissingProductCodes = [
+          ...new Set(
+            dataMissingProduct.map(item => item['Product Code'].trim())
+          )
+        ];
+        console.log('Unique Missing Product Codes length:', uniqueMissingProductCodes.length);
+
+        // Filter Product Sheet Data against Unique Missing Product Codes
+        const filteredData = data.filter(item =>
+          uniqueMissingProductCodes.some(code => item["Product Code"].startsWith(code))
+        );
+        console.log('Filtered Data length:', filteredData.length);
+
+        // Filter Unique Product Codes which are not found in Product Sheet
+        const remainingProductCodes = uniqueMissingProductCodes.filter(obj =>
+          !filteredData.some(item => item["Product Code"].startsWith(obj))
+        )
+        console.log('Remaining Product Codes length:', remainingProductCodes.length);
+
+        // Filter Missing Product Sheet which are not found in Product Sheet 
+        const filteredRemainingData = dataMissingProduct.filter(item =>
+          remainingProductCodes.some(obj => item["Product Code"].trim() === obj.trim()));
+        console.log('Filtered Remaining Data length:', filteredRemainingData.length);
+        if (filteredRemainingData?.length > 0) {
+          const csvRemainingData = Papa.unparse(filteredRemainingData);
+          const folderNameRemainingData =
+            __dirname + "/../../../.." + `/MissingProductCostOptionsProductNotFoundFolder`;
+          if (!fs.existsSync(folderNameRemainingData)) {
+            fs.mkdirSync(folderNameRemainingData, { recursive: true });
+          }
+          const filenameRemainingData = `MissingProductCostOptions-ProductNotFoundFile`;
+          fs.writeFileSync(`${folderNameRemainingData}/${filenameRemainingData}.csv`, csvRemainingData);
+        }
+
+        // Filter Missing Products which are found in Product Sheet
+        const result = dataMissingProduct.filter(
+          bItem => !filteredRemainingData.some(
+            aItem =>
+              aItem["Product Code"] === bItem["Product Code"] &&
+              aItem["Term"] === bItem["Term"]
+          )
+        );
+        console.log('Result length:', result.length);
+
+        // Attaching remaining Field with Filter Missing Products
+        const fullResult = result.map(cItem => {
+          const match = filteredData.find(dItem => dItem["Product Code"].startsWith(cItem["Product Code"]));
+          return match
+            ? {
+              "Group Code": match["Group Code"],
+              "Product Code": cItem["Product Code"],
+              "Service Name": match["Service Name"],
+              "Term": cItem["Term"],
+              "Tax Type": match["Tax Type"],
+              "Recurring Charge": match["Recurring Charge"],
+              "Establishment Charge": match["Establishment Charge"]
+            }
+            : null;
+        }).filter(Boolean);
+        console.log('Full Result length:', fullResult.length);
+
+        // Map Unique Group Codes
+        const uniqueGroupCodes = [
+          ...new Set(
+            fullResult.map(item => item['Group Code'].trim())
+          )
+        ];
+        console.log('Unique Group Codes length:', uniqueGroupCodes.length);
+
+        const getItemTypes = await itemTypeService.getItemTypes(uniqueGroupCodes, trx);
+        console.log('getItemTypes length:', getItemTypes.length);
+
+        const getGroupCode = await metaFieldNameService.getGroupCode(trx);
+        const metaFieldNameIdGroupCode = parseInt(getGroupCode.id);
+        const getTerm = await metaFieldNameService.getTerm(trx);
+        const metaFieldNameIdTerm = parseInt(getTerm.id);
+        const getTaxScheme = await metaFieldNameService.getTaxScheme(trx);
+        const metaFieldNameIdTaxScheme = parseInt(getTaxScheme.id);
+        const getRecurringCharge = await metaFieldNameService.getRecurringCharge(trx);
+        const metaFieldNameIdRecurringCharge = parseInt(getRecurringCharge.id);
+        const getEstablishmentCharge = await metaFieldNameService.getEstablishmentCharge(trx);
+        const metaFieldNameIdEstablishmentCharge = parseInt(getEstablishmentCharge.id);
+
+        const getMaxItemId = await itemService.maxId(trx);
+        let maxItemId = parseInt(getMaxItemId);
+        const getMaxMetaFieldValueId = await metaFieldValueService.maxId(trx);
+        let maxMetaFieldValueId = parseInt(getMaxMetaFieldValueId);
+
+        const output = getItemTypes.map(hEntry => {
+          const groupItems = fullResult.filter(g => g["Group Code"].trim() === hEntry.description);
+
+          const itemArray = groupItems.map(gEntry => {
+            const item = {
+              id: ++maxItemId,
+              internalNumber: `${gEntry["Product Code"].trim()}-${gEntry["Term"].trim()}`,
+              entityId: 20,
+              optlock: 1,
+              priceManual: 0,
+              itemEntityMap: {
+                entityId: 20
+              },
+              internationalDescription: {
+                tableId: 14,
+                psudoColumn: "description",
+                languageId: 1,
+                content: gEntry["Service Name"].trim()
+              },
+              metaFieldValue: [
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldNameId: metaFieldNameIdGroupCode,
+                  dtype: "string",
+                  stringValue: gEntry["Group Code"].trim()
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldNameId: metaFieldNameIdTerm,
+                  dtype: "decimal",
+                  decimalValue: parseInt(gEntry["Term"].trim())
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldNameId: metaFieldNameIdTaxScheme,
+                  dtype: "string",
+                  stringValue: "TAX_GST"
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldNameId: metaFieldNameIdRecurringCharge,
+                  dtype: "decimal",
+                  decimalValue: parseFloat(gEntry["Recurring Charge"].trim())
+                },
+                {
+                  id: ++maxMetaFieldValueId,
+                  metaFieldNameId: metaFieldNameIdEstablishmentCharge,
+                  dtype: "decimal",
+                  decimalValue: parseFloat(gEntry["Establishment Charge"].trim())
+                }
+              ]
+            };
+            return item;
+          });
+
+          return {
+            id: hEntry.id,
+            description: hEntry.description,
+            item: itemArray
+          };
+        });
+
+        console.log('output length:', output.length);
+
+
+        // Map Unique Product Codes
+        const uniqueProductCodes = [
+          ...new Set(
+            fullResult.map(item => `${item['Product Code'].trim()}-${item['Term'].trim()}`)
+          )
+        ];
+        console.log('Unique Group Codes length:', uniqueProductCodes.length);
+
+        const getIdAndInternalNumberByProductCodes = await itemService.getIdAndInternalNumberByProductCodes(uniqueProductCodes, trx);
+        // Attaching remaining Field with Filter Missing Products
+        const internationalDescriptionResult = getIdAndInternalNumberByProductCodes.map(cItem => {
+          const match = fullResult.find(dItem => `${dItem["Product Code"].trim()}-${dItem["Term"].trim()}` === cItem.internalNumber);
+          return match
+            ? {
+              tableId: 14,
+              foreignId: cItem.id,
+              psudoColumn: "description",
+              languageId: 1,
+              content: match["Service Name"].trim()
+            }
+            : null;
+        }).filter(Boolean);
+        console.log('internationalDescriptionResult length:', internationalDescriptionResult.length);
+
+        const itemEntityMapResult = getIdAndInternalNumberByProductCodes.map(item => {
+          return {
+            itemId: item.id,
+            entityId: 20
+          }
+        })
+        console.log('itemEntityMapResult length:', itemEntityMapResult.length);
+
+
+        const upsertGraphInsertMissingNoDeleteNoUpdateNoRelate = await itemEntityMapService.upsertGraphInsertMissingNoDeleteNoUpdateNoRelate(itemEntityMapResult, trx);
+        if (upsertGraphInsertMissingNoDeleteNoUpdateNoRelate) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Item Entity Map Upsert Completed",
+              data: upsertGraphInsertMissingNoDeleteNoUpdateNoRelate
+            }
+          };
+        }
+        // const upsertGraphInsertMissingNoDeleteRelate = await itemTypeService.upsertGraphInsertMissingNoDeleteRelate(output, trx);
+        // if (upsertGraphInsertMissingNoDeleteRelate) {
+        //   return {
+        //     status: 200,
+        //     data: {
+        //       success: true,
+        //       message: "Success: Product Upsert Completed",
+        //       data: null
+        //     }
+        //   };
+        // }
+
+        return {
+          status: 200,
+          data: {
+            success: true,
+            message: "Success: Product Data Generated",
+            data: { fullResult, getIdAndInternalNumberByProductCodes, itemEntityMapResult }
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/productUpdateErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `ProductUpdate-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Product Update UpsertGraph:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Product Update UpsertGraph. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
 }
 
 module.exports = new controller();

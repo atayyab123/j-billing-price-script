@@ -59,4 +59,11 @@ router.get("/products/delete", verifyCors, async (ctx, next) => {
   console.log(response);
 });
 
+router.get("/products/update", verifyCors, async (ctx, next) => {
+  const response = await controller.productsUpdate();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 module.exports = router;
