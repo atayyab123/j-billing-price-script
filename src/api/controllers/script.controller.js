@@ -1367,6 +1367,7 @@ class controller {
           obj => !getIdAndInternalNumber.some(record => record.internalNumber.includes(obj))
         );
         const filteredRemainingObjects = data.filter(obj => remainingObjects.includes(obj['Product Code'].trim()));
+        console.log('filteredRemainingObjects length:', filteredRemainingObjects.length);
         const csv = Papa.unparse(filteredRemainingObjects);
         const folderName =
           __dirname + "/../../../.." + `/serviceProductCodeNotFoundFiles`;
@@ -1380,6 +1381,7 @@ class controller {
           obj => !getUserHierarchy.some(record => record.userName.includes(obj))
         );
         const filteredRemainingCpObjects = data.filter(obj => remainingCpObjects.includes(obj['CP ID'].trim()));
+        console.log('filteredRemainingCpObjects length:', filteredRemainingCpObjects.length);
         if (filteredRemainingCpObjects?.length > 0) {
           const csvCp = Papa.unparse(filteredRemainingCpObjects);
           const folderNameCP =
@@ -1390,6 +1392,27 @@ class controller {
           const filenameCp = `Service-CpIDNotFoundFile`;
           fs.writeFileSync(`${folderNameCP}/${filenameCp}.csv`, csvCp);
         }
+
+        const filteredData = data.filter(
+          bItem => !filteredRemainingObjects.some(
+            aItem =>
+              aItem["Service ID"].trim() === bItem["Service ID"].trim() &&
+              aItem["CP ID"].trim() === bItem["CP ID"].trim() &&
+              aItem["CP Name"].trim() === bItem["CP Name"].trim() &&
+              aItem["Customer ID"].trim() === bItem["Customer ID"].trim() &&
+              aItem["Customer Name"].trim() === bItem["Customer Name"].trim() &&
+              aItem["Site ID"].trim() === bItem["Site ID"].trim() &&
+              aItem["Site Name"].trim() === bItem["Site Name"].trim() &&
+              aItem["Legacy SL"].trim() === bItem["Legacy SL"].trim() &&
+              aItem["Service Status"].trim() === bItem["Service Status"].trim() &&
+              aItem["Product Code"].trim() === bItem["Product Code"].trim() &&
+              aItem["Service Description"].trim() === bItem["Service Description"].trim() &&
+              aItem["Quantity"].trim() === bItem["Quantity"].trim() &&
+              aItem["Recurring Price"].trim() === bItem["Recurring Price"].trim() &&
+              aItem["Billing Period"].trim() === bItem["Billing Period"].trim()
+          )
+        );
+        console.log('filteredData length:', filteredData.length);
 
         const getSiteServiceSetGroup = await metaFieldGroupService.getSiteServiceSetGroup(trx);
         const metaFieldGroupAccountTypeIdSiteService = parseInt(getSiteServiceSetGroup.accountTypeId);
@@ -1476,6 +1499,7 @@ class controller {
         getUserHierarchy.forEach(findSite);
 
         const itemMap = Object.fromEntries(getIdAndInternalNumber.map(i => [i.internalNumber, i.id]));
+        const truncate = (str, len = 999) => str && str.length > len ? str.slice(0, len) : str;
 
         const output = [];
 
@@ -1483,7 +1507,7 @@ class controller {
           const channelPartnerUserName = channelPartner?.userName;
           const customerUserName = customer?.user?.userName;
           const siteUserName = site?.user?.userName;
-          const matchingServices = data.filter(s => s["CP ID"].trim() === channelPartnerUserName
+          const matchingServices = filteredData.filter(s => s["CP ID"].trim() === channelPartnerUserName
             && s["Customer ID"].trim() === customerUserName && s["Site ID"].trim() === siteUserName);
 
           if (!matchingServices.length) continue;
@@ -1535,46 +1559,52 @@ class controller {
                 {
                   id: ++metaFieldValueId,
                   metaFieldNameId: metaFieldCustomerTypeNameId,
-                  stringValue: service["Customer Name"].trim()
+                  dtype: "string",
+                  stringValue: truncate(service["Customer Name"].trim())
                 },
                 {
                   id: ++metaFieldValueId,
                   metaFieldNameId: metaFieldAccountTypeSiteIDId,
-                  stringValue: service["Site ID"].trim(),
+                  dtype: "string",
+                  stringValue: truncate(service["Site ID"].trim()),
                   metafieldGroupMetaFieldMap: {
-                    metaFieldGroupId: metaFieldGroupAccountTypeIdSiteService
+                    metafieldGroupId: metaFieldGroupAccountTypeIdSiteService
                   }
                 },
                 {
                   id: ++metaFieldValueId,
                   metaFieldNameId: metaFieldAccountTypeSiteNameId,
-                  stringValue: service["Site Name"].trim(),
+                  dtype: "string",
+                  stringValue: truncate(service["Site Name"].trim()),
                   metafieldGroupMetaFieldMap: {
-                    metaFieldGroupId: metaFieldGroupAccountTypeIdSiteService
+                    metafieldGroupId: metaFieldGroupAccountTypeIdSiteService
                   }
                 },
                 {
                   id: ++metaFieldValueId,
                   metaFieldNameId: metaFieldAccountTypeCustomerNameId,
-                  stringValue: service["Customer Name"].trim(),
+                  dtype: "string",
+                  stringValue: truncate(service["Customer Name"].trim()),
                   metafieldGroupMetaFieldMap: {
-                    metaFieldGroupId: metaFieldGroupAccountTypeIdSiteService
+                    metafieldGroupId: metaFieldGroupAccountTypeIdSiteService
                   }
                 },
                 {
                   id: ++metaFieldValueId,
                   metaFieldNameId: metaFieldAccountTypeSiteCustomerIDId,
-                  stringValue: service["Customer ID"].trim(),
+                  dtype: "string",
+                  stringValue: truncate(service["Customer ID"].trim()),
                   metafieldGroupMetaFieldMap: {
-                    metaFieldGroupId: metaFieldGroupAccountTypeIdSiteService
+                    metafieldGroupId: metaFieldGroupAccountTypeIdSiteService
                   }
                 },
                 {
                   id: ++metaFieldValueId,
                   metaFieldNameId: metaFieldAccountTypeCustomerAndSiteCpIDId,
-                  stringValue: service["CP ID"].trim(),
+                  dtype: "string",
+                  stringValue: truncate(service["CP ID"].trim()),
                   metafieldGroupMetaFieldMap: {
-                    metaFieldGroupId: metaFieldGroupAccountTypeIdSiteService
+                    metafieldGroupId: metaFieldGroupAccountTypeIdSiteService
                   }
                 }
               ]
@@ -1603,87 +1633,102 @@ class controller {
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderServiceIDId,
-                      stringValue: service["Service ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Service ID"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCpIDId,
-                      stringValue: service["CP ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["CP ID"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCustomerIDId,
-                      stringValue: service["Customer ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Customer ID"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderServiceStatusId,
-                      stringValue: service["Service Status"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Service Status"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderServiceDescriptionId,
-                      stringValue: service["Service Description"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Service Description"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderProductCodeId,
-                      stringValue: service["Product Code"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Product Code"].trim())
                     },
                     ...(service["Legacy SL"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderLegacyIDId,
-                        stringValue: service["Legacy SL"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["Legacy SL"].trim())
                       }]
                       : []),
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderESIDId,
-                      stringValue: service["Site ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Site ID"].trim())
                     },
                     ...(service["DID Start"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderDIDStartId,
-                        stringValue: service["DID Start"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["DID Start"].trim())
                       }]
                       : []),
                     ...(service["DID End"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderDIDEndId,
-                        stringValue: service["DID End"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["DID End"].trim())
                       }]
                       : []),
                     ...(service["IP Address"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderIPAddressId,
-                        stringValue: service["IP Address"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["IP Address"].trim())
                       }]
                       : []),
                     ...(service["Contract Term"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderContractTermId,
-                        stringValue: service["Contract Term"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["Contract Term"].trim())
                       }]
                       : []),
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderSiteNameId,
-                      stringValue: service["Site Name"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Site Name"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCustomerNameId,
-                      stringValue: service["Customer Name"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Customer Name"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCPNameId,
-                      stringValue: service["CP Name"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["CP Name"].trim())
                     }
                   ],
                   orderLine: [
@@ -1695,7 +1740,7 @@ class controller {
                       quantity: parseInt(service["Quantity"].trim()),
                       price: parseFloat(service["Recurring Price"].trim()) / parseInt(service["Quantity"].trim()),
                       createDatetime: new Date(),
-                      description: service["Service Description"].trim(),
+                      description: truncate(service["Service Description"].trim()),
                       optlock: 1,
                       useItem: 't'
                     }
@@ -1719,87 +1764,102 @@ class controller {
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderServiceIDId,
-                      stringValue: `${service["Service ID"].trim()}-EST`
+                      dtype: "string",
+                      stringValue: truncate(`${service["Service ID"].trim()}-EST`)
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCpIDId,
-                      stringValue: service["CP ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["CP ID"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCustomerIDId,
-                      stringValue: service["Customer ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Customer ID"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderServiceStatusId,
-                      stringValue: service["Service Status"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Service Status"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderServiceDescriptionId,
-                      stringValue: service["Service Description"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Service Description"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderProductCodeId,
-                      stringValue: service["Product Code"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Product Code"].trim())
                     },
                     ...(service["Legacy SL"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderLegacyIDId,
-                        stringValue: service["Legacy SL"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["Legacy SL"].trim())
                       }]
                       : []),
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderESIDId,
-                      stringValue: service["Site ID"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Site ID"].trim())
                     },
                     ...(service["DID Start"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderDIDStartId,
-                        stringValue: service["DID Start"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["DID Start"].trim())
                       }]
                       : []),
                     ...(service["DID End"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderDIDEndId,
-                        stringValue: service["DID End"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["DID End"].trim())
                       }]
                       : []),
                     ...(service["IP Address"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderIPAddressId,
-                        stringValue: service["IP Address"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["IP Address"].trim())
                       }]
                       : []),
                     ...(service["Contract Term"].trim() !== ''
                       ? [{
                         id: ++metaFieldValueId,
                         metaFieldNameId: metaFieldOrderContractTermId,
-                        stringValue: service["Contract Term"].trim()
+                        dtype: "string",
+                        stringValue: truncate(service["Contract Term"].trim())
                       }]
                       : []),
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderSiteNameId,
-                      stringValue: service["Site Name"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Site Name"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCustomerNameId,
-                      stringValue: service["Customer Name"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["Customer Name"].trim())
                     },
                     {
                       id: ++metaFieldValueId,
                       metaFieldNameId: metaFieldOrderCPNameId,
-                      stringValue: service["CP Name"].trim()
+                      dtype: "string",
+                      stringValue: truncate(service["CP Name"].trim())
                     }
                   ],
                   orderLine: [
@@ -1833,6 +1893,18 @@ class controller {
         }
         const filenameJson = `Service-JsonOutputFile`;
         fs.writeFileSync(`${folderNameJson}/${filenameJson}.json`, JSON.stringify(output, null, 2));
+
+        const upsertGraphInsertMissingNoDelete = await customerService.upsertGraphInsertMissingNoDelete(output, trx);
+        if (upsertGraphInsertMissingNoDelete) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Service Created",
+              data: null
+            }
+          };
+        }
 
         return {
           status: 200,
