@@ -1414,6 +1414,40 @@ class controller {
         );
         console.log('filteredData length:', filteredData.length);
 
+        const unmatchedServices = filteredData.filter(service => {
+          let matched = false;
+
+          for (const cp of getUserHierarchy) {
+            // match CP ID → userHierarchy.userName
+            if (service["CP ID"].trim() !== cp.userName) continue;
+
+            // iterate over customers
+            const customers = cp.customer?.child || [];
+            for (const cust of customers) {
+              // match Customer ID → customer.user.userName
+              if (service["Customer ID"].trim() !== cust.user?.userName) continue;
+
+              // iterate over sites
+              const sites = cust.child || [];
+              for (const site of sites) {
+                // match Site ID → site.user.userName
+                if (service["Site ID"].trim() === site.user?.userName) {
+                  matched = true;
+                  break;
+                }
+              }
+
+              if (matched) break;
+            }
+
+            if (matched) break;
+          }
+
+          return !matched; // keep only unmatched
+        });
+
+        console.log('unmatchedServices.length', unmatchedServices.length);
+
         const getSiteServiceSetGroup = await metaFieldGroupService.getSiteServiceSetGroup(trx);
         const metaFieldGroupAccountTypeIdSiteService = parseInt(getSiteServiceSetGroup.accountTypeId);
 
@@ -1535,7 +1569,7 @@ class controller {
               nextInvoiceDayOfPeriod: service["Billing Day"].trim() !== '' ? parseInt(service["Billing Day"].trim()) : 1,
               nextInoviceDate: service["Billing Day"].trim() !== '' && service["Billing Day"].trim() !== '1'
                 && (service["Billing Period"].trim() === 'Monthly' || service["Billing Period"].trim() === 'Once')
-                ? `2025-08-${service["Billing Day"].trim()}`
+                ? `${service["Billing Day"].trim() === '0' ? '2025-09-01' : `2025-08-${service["Billing Day"].trim()}`}`
                 : service["Billing Day"].trim() !== '' && service["Billing Period"].trim() === 'Annual' ? `2026-08-${service["Billing Day"].trim()}`
                   : '2025-09-01',
               accountTypeId: 304,
@@ -1886,32 +1920,39 @@ class controller {
           output.push(siteObject);
         }
 
+        console.log('output.length', output.length)
+
         const folderNameJson =
           __dirname + "/../../../.." + `/serviceJsonOutputFiles`;
         if (!fs.existsSync(folderNameJson)) {
           fs.mkdirSync(folderNameJson, { recursive: true });
         }
         const filenameJson = `Service-JsonOutputFile`;
-        fs.writeFileSync(`${folderNameJson}/${filenameJson}.json`, JSON.stringify(output, null, 2));
+        // Split into 4 equal parts
+        const totalParts = 4;
+        const partSize = Math.ceil(output.length / totalParts);
 
-        const upsertGraphInsertMissingNoDelete = await customerService.upsertGraphInsertMissingNoDelete(output, trx);
-        if (upsertGraphInsertMissingNoDelete) {
-          return {
-            status: 200,
-            data: {
-              success: true,
-              message: "Success: Service Created",
-              data: null
-            }
-          };
+        for (let i = 0; i < totalParts; i++) {
+          const start = i * partSize;
+          const end = start + partSize;
+          const partData = output.slice(start, end);
+          console.log('partData.length', partData.length)
+
+
+          fs.writeFileSync(
+            `${folderNameJson}/${filenameJson}-Part${i + 1}.json`,
+            JSON.stringify(partData, null, 2)
+          );
         }
+
+        console.log(`✅ Split into ${totalParts} files successfully!`);
 
         return {
           status: 200,
           data: {
             success: true,
             message: "Success: Service Data Generated",
-            data: null
+            data: { unmatchedServices }
           }
         };
       });
@@ -1924,6 +1965,56 @@ class controller {
         fs.mkdirSync(folderName, { recursive: true });
       }
       const filename = `ServiceOrderLine-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Service Order Line UpdateGraph:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Service Order Line UpsertGraph. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
+
+  async serviceOrderLineInParts() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        const jsonFilePath = path.join(__dirname, '/../../../..', 'serviceJsonOutputFiles', 'Service-JsonOutputFile-Part1.json');
+        const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, "utf8"));
+        console.log('jsonData.length', jsonData.length)
+
+        const upsertGraphInsertMissingNoDelete = await customerService.upsertGraphInsertMissingNoDelete(jsonData, trx);
+        if (upsertGraphInsertMissingNoDelete) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Service Created Part 1",
+              data: null
+            }
+          };
+        }
+
+        return {
+          status: 200,
+          data: {
+            success: true,
+            message: "Success: Service Json File Part 1",
+            data: jsonData.slice(0, 1)
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/serviceOrderLineErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `ServiceOrderLinePart1-ErrorFile`;
       fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
       console.error("Error on Service Order Line UpdateGraph:", error);
       return {

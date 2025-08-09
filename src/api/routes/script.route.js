@@ -52,6 +52,13 @@ router.get("/service/order-line", verifyCors, async (ctx, next) => {
   console.log(response);
 });
 
+router.get("/service/order-line/in-parts", verifyCors, async (ctx, next) => {
+  const response = await controller.serviceOrderLineInParts();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 router.get("/products/delete", verifyCors, async (ctx, next) => {
   const response = await controller.productsDelete();
   ctx.status = response.status;
