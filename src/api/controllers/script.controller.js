@@ -1981,7 +1981,7 @@ class controller {
   async serviceOrderLineInParts() {
     try {
       const returnValue = await Model.transaction(async (trx) => {
-        const jsonFilePath = path.join(__dirname, '/../../../..', 'serviceJsonOutputFiles', 'Service-JsonOutputFile-Part1.json');
+        const jsonFilePath = path.join(__dirname, '/../../../..', 'serviceJsonOutputFiles', 'Service-JsonOutputFile-Part4.json');
         const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, "utf8"));
         console.log('jsonData.length', jsonData.length)
 
@@ -1991,7 +1991,7 @@ class controller {
             status: 200,
             data: {
               success: true,
-              message: "Success: Service Created Part 1",
+              message: "Success: Service Created Part 4",
               data: null
             }
           };
@@ -2001,7 +2001,7 @@ class controller {
           status: 200,
           data: {
             success: true,
-            message: "Success: Service Json File Part 1",
+            message: "Success: Service Json File Part 4",
             data: jsonData.slice(0, 1)
           }
         };
@@ -2014,7 +2014,7 @@ class controller {
       if (!fs.existsSync(folderName)) {
         fs.mkdirSync(folderName, { recursive: true });
       }
-      const filename = `ServiceOrderLinePart1-ErrorFile`;
+      const filename = `ServiceOrderLinePart4-ErrorFile`;
       fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
       console.error("Error on Service Order Line UpdateGraph:", error);
       return {
