@@ -17,6 +17,10 @@ const itemMetaFieldMapService = require("../services/itemMetaFieldMap.service");
 const itemEntityMapService = require("../services/itemEntityMap.service");
 const purchaseOrderService = require("../services/purchaseOrder.service");
 const orderLineService = require("../services/orderLine.service");
+const orderMetaFieldMapService = require("../services/orderMetaFieldMap.service");
+const metafieldGroupMetaFieldMapService = require("../services/metafieldGroupMetaFieldMap.service");
+const customerMetaFieldMapService = require("../services/customerMetaFieldMap.service");
+const userRoleMapService = require("../services/userRoleMap.service");
 
 class controller {
   async priceUpdateSheetOne() {
@@ -1449,7 +1453,7 @@ class controller {
         console.log('unmatchedServices.length', unmatchedServices.length);
 
         const getSiteServiceSetGroup = await metaFieldGroupService.getSiteServiceSetGroup(trx);
-        const metaFieldGroupAccountTypeIdSiteService = parseInt(getSiteServiceSetGroup.accountTypeId);
+        const metaFieldGroupAccountTypeIdSiteService = parseInt(getSiteServiceSetGroup.id);
 
         const getCustomerTypeName = await metaFieldNameService.getCustomerTypeName(trx);
         const metaFieldCustomerTypeNameId = parseInt(getCustomerTypeName.id);
@@ -2415,6 +2419,315 @@ class controller {
         data: {
           success: false,
           message: `Catch Error: Error on Product Update UpsertGraph. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
+
+  async serviceDelete() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        const csvFilePath = path.join(__dirname, '/../../..', 'files', 'Services.csv');
+        const csvFileContent = fs.readFileSync(csvFilePath, 'utf8');
+        // Parse the CSV content
+        const json = Papa.parse(csvFileContent, {
+          header: true, // if you want to treat the first line as headers
+          skipEmptyLines: true,
+        });
+
+        const data = json.data.filter(obj => obj['Service Status'] === 'Active'); // Parse the CSV content
+        console.log('Services data length:', data.length);
+
+        const uniqueProductCodeIds = [
+          ...new Set(
+            data.map(item => item['Product Code'].trim())
+          )
+        ];
+        console.log('Unique Product Codes length:', uniqueProductCodeIds.length);
+
+        const getIdAndInternalNumber = await itemService.getIdAndInternalNumber(trx);
+
+        const remainingObjects = uniqueProductCodeIds.filter(
+          obj => !getIdAndInternalNumber.some(record => record.internalNumber.includes(obj))
+        );
+        const filteredRemainingObjects = data.filter(obj => remainingObjects.includes(obj['Product Code'].trim()));
+        console.log('filteredRemainingObjects length:', filteredRemainingObjects.length);
+
+        const filteredData = data.filter(
+          bItem => !filteredRemainingObjects.some(
+            aItem =>
+              aItem["Service ID"].trim() === bItem["Service ID"].trim() &&
+              aItem["CP ID"].trim() === bItem["CP ID"].trim() &&
+              aItem["CP Name"].trim() === bItem["CP Name"].trim() &&
+              aItem["Customer ID"].trim() === bItem["Customer ID"].trim() &&
+              aItem["Customer Name"].trim() === bItem["Customer Name"].trim() &&
+              aItem["Site ID"].trim() === bItem["Site ID"].trim() &&
+              aItem["Site Name"].trim() === bItem["Site Name"].trim() &&
+              aItem["Legacy SL"].trim() === bItem["Legacy SL"].trim() &&
+              aItem["Service Status"].trim() === bItem["Service Status"].trim() &&
+              aItem["Product Code"].trim() === bItem["Product Code"].trim() &&
+              aItem["Service Description"].trim() === bItem["Service Description"].trim() &&
+              aItem["Quantity"].trim() === bItem["Quantity"].trim() &&
+              aItem["Recurring Price"].trim() === bItem["Recurring Price"].trim() &&
+              aItem["Billing Period"].trim() === bItem["Billing Period"].trim()
+          )
+        );
+        console.log('filteredData length:', filteredData.length);
+
+        const uniqueServiceIds = [
+          ...new Set(
+            filteredData.map(item => item['Service ID'].trim())
+          )
+        ];
+        console.log('Unique Service IDs length:', uniqueServiceIds.length);
+
+        const uniqueSiteIds = [
+          ...new Set(
+            filteredData.map(item => item['Site ID'].trim())
+          )
+        ];
+        console.log('Unique Site IDs length:', uniqueSiteIds.length);
+
+        const uniqueCpIds = [
+          ...new Set(
+            filteredData.map(item => item['CP ID'].trim())
+          )
+        ];
+        console.log('Unique CP IDs length:', uniqueCpIds.length);
+
+        const getUserHierarchy = await baseUserService.getUserHierarchy(uniqueCpIds, trx);
+        console.log('getUserHierarchy.length', getUserHierarchy.length);
+
+        const cpUserNameCount = {};
+        for (const item of getUserHierarchy) {
+          const val = item.userName;
+          cpUserNameCount[val] = (cpUserNameCount[val] || 0) + 1;
+        }
+
+        const duplicates = Object.keys(cpUserNameCount).filter(
+          key => cpUserNameCount[key] > 1
+        );
+
+        console.log('CP duplicates:', duplicates);
+
+        const unmatchedServices = filteredData.filter(service => {
+          let matched = false;
+
+          for (const cp of getUserHierarchy) {
+            // match CP ID → userHierarchy.userName
+            if (service["CP ID"].trim() !== cp.userName) continue;
+
+            // iterate over customers
+            const customers = cp.customer?.child || [];
+            for (const cust of customers) {
+              // match Customer ID → customer.user.userName
+              if (service["Customer ID"].trim() !== cust.user?.userName) continue;
+
+              // iterate over sites
+              const sites = cust.child || [];
+              for (const site of sites) {
+                // match Site ID → site.user.userName
+                if (service["Site ID"].trim() === site.user?.userName) {
+                  matched = true;
+                  break;
+                }
+              }
+
+              if (matched) break;
+            }
+
+            if (matched) break;
+          }
+
+          return !matched; // keep only unmatched
+        });
+
+        console.log('unmatchedServices.length', unmatchedServices.length);
+
+        // Find the site user node
+        const result = [];
+
+        const findSite = (channelPartner) => {
+          const customers = channelPartner.customer.child || [];
+          for (const customer of customers) {
+            const sites = customer.child || [];
+            for (const site of sites) {
+              result.push({
+                site,
+                customer,
+                channelPartner
+              });
+            }
+          }
+        };
+
+        getUserHierarchy.forEach(findSite);
+        console.log('result.length', result.length);
+
+        const output = [];
+
+        for (const { site, customer, channelPartner } of result) {
+          const channelPartnerUserName = channelPartner?.userName;
+          const customerUserName = customer?.user?.userName;
+          const siteUserName = site?.user?.userName;
+          const matchingServices = filteredData.filter(s => s["CP ID"].trim() === channelPartnerUserName
+            && s["Customer ID"].trim() === customerUserName && s["Site ID"].trim() === siteUserName);
+
+          if (!matchingServices.length) continue;
+
+          const siteObject = {
+            id: site.id,
+            isParent: 0
+          };
+          output.push(siteObject);
+        }
+
+        console.log('output.length', output.length);
+
+        const siteIds = output.map(obj => obj.id);
+
+        const getServiceHierarchy = await customerService.getServiceHierarchy(siteIds, trx);
+        console.log('getServiceHierarchy.length', getServiceHierarchy.length);
+
+        // Flatten all IDs from nested structure
+        const serviceIds = [];
+        const userIds = [];
+        const orderIds = [];
+        const orderLineIds = [];
+        const metaFieldGroupMetaFieldValueIds = [];
+        const metaFieldValueIds = [];
+
+        getServiceHierarchy.forEach(d => {
+          d.child?.forEach(c => {
+            // serviceIds
+            if (c.id !== undefined) serviceIds.push(c.id);
+
+            // userIds
+            if (c.user?.id !== undefined) userIds.push(c.user.id);
+
+            // orderIds + orderLineIds + order-level metaFieldValueIds
+            c.user?.order?.forEach(o => {
+              if (o.id !== undefined) orderIds.push(o.id);
+
+              o.orderLine?.forEach(ol => {
+                if (ol.id !== undefined) orderLineIds.push(ol.id);
+              });
+
+              o.metaFieldValue?.forEach(mfv => {
+                if (mfv.id !== undefined) metaFieldValueIds.push(mfv.id);
+              });
+            });
+
+            // metaFieldValueIds + metaFieldGroupMetaFieldValueIds at child level
+            c.metaFieldValue?.forEach(mfv => {
+              if (mfv.id !== undefined) metaFieldValueIds.push(mfv.id);
+
+              if (mfv.metafieldGroupMetaFieldMap?.metaFieldValueId !== undefined) {
+                metaFieldGroupMetaFieldValueIds.push(
+                  mfv.metafieldGroupMetaFieldMap.metaFieldValueId
+                );
+              }
+            });
+          });
+        });
+
+        console.log('serviceIds.length', serviceIds.length);
+        console.log('userIds.length', userIds.length);
+        console.log('orderIds.length', orderIds.length);
+        console.log('orderLineIds.length', orderLineIds.length);
+        console.log('metaFieldGroupMetaFieldValueIds.length', metaFieldGroupMetaFieldValueIds.length);
+        console.log('metaFieldValueIds.length', metaFieldValueIds.length);
+
+        const patchIsParentBySiteId = await customerService.patchIsParentBySiteId(siteIds, trx);
+        console.log('patchIsParentBySiteId', patchIsParentBySiteId);
+
+        const deleteOrderLineById = await orderLineService.deleteOrderLineById(orderLineIds, trx);
+        console.log('deleteOrderLineById', deleteOrderLineById);
+        const deleteOrderMetaFieldMapByOrderId = await orderMetaFieldMapService.deleteOrderMetaFieldMapByOrderId(orderIds, trx);
+        console.log('deleteOrderMetaFieldMapByOrderId', deleteOrderMetaFieldMapByOrderId);
+        const deleteMetafieldGroupMetaFieldMapByMetaFieldValueId = await metafieldGroupMetaFieldMapService.deleteMetafieldGroupMetaFieldMapByMetaFieldValueId(metaFieldGroupMetaFieldValueIds, trx);
+        console.log('deleteMetafieldGroupMetaFieldMapByMetaFieldValueId', deleteMetafieldGroupMetaFieldMapByMetaFieldValueId);
+        const deleteCustomerMetaFieldMapByCustomerId = await customerMetaFieldMapService.deleteCustomerMetaFieldMapByCustomerId(serviceIds, trx);
+        console.log('deleteCustomerMetaFieldMapByCustomerId', deleteCustomerMetaFieldMapByCustomerId);
+        const deleteMetaFieldValueById = await metaFieldValueService.deleteMetaFieldValueById(metaFieldValueIds, trx);
+        console.log('deleteMetaFieldValueById', deleteMetaFieldValueById);
+        const deleteUserRoleMapByUserId = await userRoleMapService.deleteUserRoleMapByUserId(userIds, trx);
+        console.log('deleteUserRoleMapByUserId', deleteUserRoleMapByUserId);
+        const deleteOrderById = await purchaseOrderService.deleteOrderById(orderIds, trx);
+        console.log('deleteOrderById', deleteOrderById);
+        const deleteServiceById = await customerService.deleteServiceById(serviceIds, trx);
+        console.log('deleteServiceById', deleteServiceById);
+        const deleteBaseUserById = await baseUserService.deleteBaseUserById(userIds, trx);
+        console.log('deleteBaseUserById', deleteBaseUserById);
+
+        if (patchIsParentBySiteId &&
+          deleteOrderLineById.length > 0 &&
+          deleteOrderMetaFieldMapByOrderId.length > 0 &&
+          deleteMetafieldGroupMetaFieldMapByMetaFieldValueId.length > 0 &&
+          deleteCustomerMetaFieldMapByCustomerId.length > 0 &&
+          deleteMetaFieldValueById.length > 0 &&
+          deleteUserRoleMapByUserId.length > 0 &&
+          deleteOrderById.length > 0 &&
+          deleteServiceById.length > 0 &&
+          deleteBaseUserById) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Updated and Deleted Successfully",
+              data: {
+                patchIsParentBySiteId,
+                deleteOrderLineById,
+                deleteOrderMetaFieldMapByOrderId,
+                deleteMetafieldGroupMetaFieldMapByMetaFieldValueId,
+                deleteCustomerMetaFieldMapByCustomerId,
+                deleteMetaFieldValueById,
+                deleteUserRoleMapByUserId,
+                deleteOrderById,
+                deleteServiceById,
+                deleteBaseUserById
+              }
+            }
+          };
+        }
+
+        return {
+          status: 200,
+          data: {
+            success: false,
+            message: "Failure: Not deleted",
+            data: {
+              patchIsParentBySiteId,
+              deleteOrderLineById,
+              deleteOrderMetaFieldMapByOrderId,
+              deleteMetafieldGroupMetaFieldMapByMetaFieldValueId,
+              deleteCustomerMetaFieldMapByCustomerId,
+              deleteMetaFieldValueById,
+              deleteUserRoleMapByUserId,
+              deleteOrderById,
+              deleteServiceById,
+              deleteBaseUserById
+            }
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/serviceDeleteErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `ServiceDelete-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Service Delete Transaction:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Service Delete Transaction. ${error.message}`,
           error
         }
       };

@@ -24,5 +24,12 @@ class service {
     const data = await model.query(trx).max('id as maxId').first();
     return data?.maxId || 0;
   }
+
+  async deleteMetaFieldValueById(metaFieldValueId, trx) {
+    console.log('deleteMetaFieldValueById started');
+    const data = await model.query(trx).delete().whereIn('id', metaFieldValueId);
+    console.log('deleteMetaFieldValueById completed successfully');
+    return data;
+  }
 }
 module.exports = new service();

@@ -73,4 +73,11 @@ router.get("/products/update", verifyCors, async (ctx, next) => {
   console.log(response);
 });
 
+router.get("/service/delete", verifyCors, async (ctx, next) => {
+  const response = await controller.serviceDelete();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 module.exports = router;
