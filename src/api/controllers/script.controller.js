@@ -21,6 +21,7 @@ const orderMetaFieldMapService = require("../services/orderMetaFieldMap.service"
 const metafieldGroupMetaFieldMapService = require("../services/metafieldGroupMetaFieldMap.service");
 const customerMetaFieldMapService = require("../services/customerMetaFieldMap.service");
 const userRoleMapService = require("../services/userRoleMap.service");
+const orderChangeService = require("../services/orderChange.service");
 
 class controller {
   async priceUpdateSheetOne() {
@@ -2590,125 +2591,37 @@ class controller {
         const getServiceHierarchy = await customerService.getServiceHierarchy(siteIds, trx);
         console.log('getServiceHierarchy.length', getServiceHierarchy.length);
 
-        // Flatten all IDs from nested structure
-        const serviceIds = [];
-        const userIds = [];
-        const orderIds = [];
-        const orderLineIds = [];
-        const metaFieldGroupMetaFieldValueIds = [];
-        const metaFieldValueIds = [];
-
-        getServiceHierarchy.forEach(d => {
-          d.child?.forEach(c => {
-            // serviceIds
-            if (c.id !== undefined) serviceIds.push(c.id);
-
-            // userIds
-            if (c.user?.id !== undefined) userIds.push(c.user.id);
-
-            // orderIds + orderLineIds + order-level metaFieldValueIds
-            c.user?.order?.forEach(o => {
-              if (o.id !== undefined) orderIds.push(o.id);
-
-              o.orderLine?.forEach(ol => {
-                if (ol.id !== undefined) orderLineIds.push(ol.id);
-              });
-
-              o.metaFieldValue?.forEach(mfv => {
-                if (mfv.id !== undefined) metaFieldValueIds.push(mfv.id);
-              });
-            });
-
-            // metaFieldValueIds + metaFieldGroupMetaFieldValueIds at child level
-            c.metaFieldValue?.forEach(mfv => {
-              if (mfv.id !== undefined) metaFieldValueIds.push(mfv.id);
-
-              if (mfv.metafieldGroupMetaFieldMap?.metaFieldValueId !== undefined) {
-                metaFieldGroupMetaFieldValueIds.push(
-                  mfv.metafieldGroupMetaFieldMap.metaFieldValueId
-                );
-              }
-            });
-          });
-        });
-
-        console.log('serviceIds.length', serviceIds.length);
-        console.log('userIds.length', userIds.length);
-        console.log('orderIds.length', orderIds.length);
-        console.log('orderLineIds.length', orderLineIds.length);
-        console.log('metaFieldGroupMetaFieldValueIds.length', metaFieldGroupMetaFieldValueIds.length);
-        console.log('metaFieldValueIds.length', metaFieldValueIds.length);
-
-        const patchIsParentBySiteId = await customerService.patchIsParentBySiteId(siteIds, trx);
-        console.log('patchIsParentBySiteId', patchIsParentBySiteId);
-
-        const deleteOrderLineById = await orderLineService.deleteOrderLineById(orderLineIds, trx);
-        console.log('deleteOrderLineById', deleteOrderLineById);
-        const deleteOrderMetaFieldMapByOrderId = await orderMetaFieldMapService.deleteOrderMetaFieldMapByOrderId(orderIds, trx);
-        console.log('deleteOrderMetaFieldMapByOrderId', deleteOrderMetaFieldMapByOrderId);
-        const deleteMetafieldGroupMetaFieldMapByMetaFieldValueId = await metafieldGroupMetaFieldMapService.deleteMetafieldGroupMetaFieldMapByMetaFieldValueId(metaFieldGroupMetaFieldValueIds, trx);
-        console.log('deleteMetafieldGroupMetaFieldMapByMetaFieldValueId', deleteMetafieldGroupMetaFieldMapByMetaFieldValueId);
-        const deleteCustomerMetaFieldMapByCustomerId = await customerMetaFieldMapService.deleteCustomerMetaFieldMapByCustomerId(serviceIds, trx);
-        console.log('deleteCustomerMetaFieldMapByCustomerId', deleteCustomerMetaFieldMapByCustomerId);
-        const deleteMetaFieldValueById = await metaFieldValueService.deleteMetaFieldValueById(metaFieldValueIds, trx);
-        console.log('deleteMetaFieldValueById', deleteMetaFieldValueById);
-        const deleteUserRoleMapByUserId = await userRoleMapService.deleteUserRoleMapByUserId(userIds, trx);
-        console.log('deleteUserRoleMapByUserId', deleteUserRoleMapByUserId);
-        const deleteOrderById = await purchaseOrderService.deleteOrderById(orderIds, trx);
-        console.log('deleteOrderById', deleteOrderById);
-        const deleteServiceById = await customerService.deleteServiceById(serviceIds, trx);
-        console.log('deleteServiceById', deleteServiceById);
-        const deleteBaseUserById = await baseUserService.deleteBaseUserById(userIds, trx);
-        console.log('deleteBaseUserById', deleteBaseUserById);
-
-        if (patchIsParentBySiteId &&
-          deleteOrderLineById.length > 0 &&
-          deleteOrderMetaFieldMapByOrderId.length > 0 &&
-          deleteMetafieldGroupMetaFieldMapByMetaFieldValueId.length > 0 &&
-          deleteCustomerMetaFieldMapByCustomerId.length > 0 &&
-          deleteMetaFieldValueById.length > 0 &&
-          deleteUserRoleMapByUserId.length > 0 &&
-          deleteOrderById.length > 0 &&
-          deleteServiceById.length > 0 &&
-          deleteBaseUserById) {
-          return {
-            status: 200,
-            data: {
-              success: true,
-              message: "Success: Updated and Deleted Successfully",
-              data: {
-                patchIsParentBySiteId,
-                deleteOrderLineById,
-                deleteOrderMetaFieldMapByOrderId,
-                deleteMetafieldGroupMetaFieldMapByMetaFieldValueId,
-                deleteCustomerMetaFieldMapByCustomerId,
-                deleteMetaFieldValueById,
-                deleteUserRoleMapByUserId,
-                deleteOrderById,
-                deleteServiceById,
-                deleteBaseUserById
-              }
-            }
-          };
+        const folderNameJson =
+          __dirname + "/../../../.." + `/serviceDeleteJsonOutputFiles`;
+        if (!fs.existsSync(folderNameJson)) {
+          fs.mkdirSync(folderNameJson, { recursive: true });
         }
+        const filenameJson = `ServiceDelete-JsonOutputFile`;
+        // Split into 4 equal parts
+        const totalParts = 4;
+        const partSize = Math.ceil(getServiceHierarchy.length / totalParts);
+
+        for (let i = 0; i < totalParts; i++) {
+          const start = i * partSize;
+          const end = start + partSize;
+          const partData = getServiceHierarchy.slice(start, end);
+          console.log('partData.length', partData.length)
+
+
+          fs.writeFileSync(
+            `${folderNameJson}/${filenameJson}-Part${i + 1}.json`,
+            JSON.stringify(partData, null, 2)
+          );
+        }
+
+        console.log(`✅ Split into ${totalParts} files successfully!`);
 
         return {
           status: 200,
           data: {
-            success: false,
-            message: "Failure: Not deleted",
-            data: {
-              patchIsParentBySiteId,
-              deleteOrderLineById,
-              deleteOrderMetaFieldMapByOrderId,
-              deleteMetafieldGroupMetaFieldMapByMetaFieldValueId,
-              deleteCustomerMetaFieldMapByCustomerId,
-              deleteMetaFieldValueById,
-              deleteUserRoleMapByUserId,
-              deleteOrderById,
-              deleteServiceById,
-              deleteBaseUserById
-            }
+            success: true,
+            message: `Success: ✅ Split into ${totalParts} files successfully!`,
+            data: null
           }
         };
       });
@@ -2728,6 +2641,196 @@ class controller {
         data: {
           success: false,
           message: `Catch Error: Error on Service Delete Transaction. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
+
+  async serviceDeleteInParts() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        const jsonFilePath = path.join(__dirname, '/../../../..', 'serviceDeleteJsonOutputFiles', 'ServiceDelete-JsonOutputFile-Part4.json');
+        const jsonData = JSON.parse(fs.readFileSync(jsonFilePath, "utf8"));
+        console.log('jsonData.length', jsonData.length)
+
+        // Flatten all IDs from nested structure
+        const serviceIds = [];
+        const userIds = [];
+        const orderIds = [];
+        const orderLineIds = [];
+        const metaFieldGroupMetaFieldValueIds = [];
+        const metaFieldValueIds = [];
+
+        jsonData.forEach(d => {
+          d.child?.forEach(c => {
+            // serviceIds
+            if (c?.id !== undefined) serviceIds.push(c.id);
+
+            // userIds
+            if (c?.user?.id !== undefined) userIds.push(c.user.id);
+
+            // orderIds + orderLineIds + order-level metaFieldValueIds
+            if (c?.user?.order?.length > 0) {
+              c.user?.order?.forEach(o => {
+                if (o.id !== undefined) orderIds.push(o.id);
+
+                if (o?.orderLine?.length > 0) {
+                  o.orderLine?.forEach(ol => {
+                    if (ol.id !== undefined) orderLineIds.push(ol.id);
+                  });
+                }
+
+                if (o?.metaFieldValue?.length > 0) {
+                  o.metaFieldValue?.forEach(mfv => {
+                    if (mfv.id !== undefined) metaFieldValueIds.push(mfv.id);
+                  });
+                }
+              });
+            }
+
+            // metaFieldValueIds + metaFieldGroupMetaFieldValueIds at child level
+            if (c?.metaFieldValue?.length > 0) {
+              c.metaFieldValue?.forEach(mfv => {
+                if (mfv.id !== undefined) metaFieldValueIds.push(mfv.id);
+
+                if (mfv?.metafieldGroupMetaFieldMap && mfv?.metafieldGroupMetaFieldMap?.metaFieldValueId !== undefined) {
+                  metaFieldGroupMetaFieldValueIds.push(
+                    mfv.metafieldGroupMetaFieldMap.metaFieldValueId
+                  );
+                }
+              });
+            }
+          });
+        });
+
+        console.log('serviceIds', serviceIds.slice(0, 10));
+        console.log('serviceIds.length', serviceIds.length);
+        console.log('userIds', userIds.slice(0, 10));
+        console.log('userIds.length', userIds.length);
+        console.log('orderIds', orderIds.slice(0, 10));
+        console.log('orderIds.length', orderIds.length);
+        console.log('orderLineIds', orderLineIds.slice(0, 10));
+        console.log('orderLineIds.length', orderLineIds.length);
+        console.log('metaFieldGroupMetaFieldValueIds', metaFieldGroupMetaFieldValueIds.slice(0, 10));
+        console.log('metaFieldGroupMetaFieldValueIds.length', metaFieldGroupMetaFieldValueIds.length);
+        console.log('metaFieldValueIds', metaFieldValueIds.slice(0, 10));
+        console.log('metaFieldValueIds.length', metaFieldValueIds.length);
+
+        // return {
+        //   status: 200,
+        //   data: {
+        //     success: true,
+        //     message: `Success: File Scanned`,
+        //     data: null
+        //   }
+        // };
+
+        const siteIds = jsonData.map(obj => obj.id);
+
+        const patchIsParentBySiteId = await customerService.patchIsParentBySiteId(siteIds, trx);
+        console.log('patchIsParentBySiteId', patchIsParentBySiteId);
+
+        const deleteOrderChangeByOrderLineId = await orderChangeService.deleteOrderChangeByOrderLineId(orderLineIds, trx);
+        console.log('deleteOrderChangeByOrderLineId', deleteOrderChangeByOrderLineId);
+        const deleteOrderLineById = await orderLineService.deleteOrderLineById(orderLineIds, trx);
+        console.log('deleteOrderLineById', deleteOrderLineById);
+        const deleteOrderMetaFieldMapByOrderId = await orderMetaFieldMapService.deleteOrderMetaFieldMapByOrderId(orderIds, trx);
+        console.log('deleteOrderMetaFieldMapByOrderId', deleteOrderMetaFieldMapByOrderId);
+        const deleteMetafieldGroupMetaFieldMapByMetaFieldValueId = await metafieldGroupMetaFieldMapService.deleteMetafieldGroupMetaFieldMapByMetaFieldValueId(metaFieldGroupMetaFieldValueIds, trx);
+        console.log('deleteMetafieldGroupMetaFieldMapByMetaFieldValueId', deleteMetafieldGroupMetaFieldMapByMetaFieldValueId);
+        const deleteCustomerMetaFieldMapByCustomerId = await customerMetaFieldMapService.deleteCustomerMetaFieldMapByCustomerId(serviceIds, trx);
+        console.log('deleteCustomerMetaFieldMapByCustomerId', deleteCustomerMetaFieldMapByCustomerId);
+        // const totalParts = 6;
+        // const partSize = Math.ceil(metaFieldValueIds.length / totalParts);
+        // for (let i = 0; i < totalParts; i++) {
+        //   const start = i * partSize;
+        //   const end = start + partSize;
+        //   const partData = metaFieldValueIds.slice(start, end);
+        //   console.log('partData.length', partData.length);
+        // const metaFieldValueIdsSlice = metaFieldValueIds.slice(20000, 231342);
+        // const deleteMetaFieldValueById = await metaFieldValueService.deleteMetaFieldValueById(metaFieldValueIdsSlice, trx);
+        // console.log('deleteMetaFieldValueById', deleteMetaFieldValueById);
+        // return {
+        //   status: 200,
+        //   data: {
+        //     success: true,
+        //     message: `Success: Meta Field Value Ids to delete`,
+        //     data: metaFieldValueIds.slice(20000, 231342)
+        //   }
+        // };
+        // }
+        const deleteUserRoleMapByUserId = await userRoleMapService.deleteUserRoleMapByUserId(userIds, trx);
+        console.log('deleteUserRoleMapByUserId', deleteUserRoleMapByUserId);
+        const deleteOrderById = await purchaseOrderService.deleteOrderById(orderIds, trx);
+        console.log('deleteOrderById', deleteOrderById);
+        const deleteServiceById = await customerService.deleteServiceById(serviceIds, trx);
+        console.log('deleteServiceById', deleteServiceById);
+        const deleteBaseUserById = await baseUserService.deleteBaseUserById(userIds, trx);
+        console.log('deleteBaseUserById', deleteBaseUserById);
+
+        if (deleteOrderLineById > 0 &&
+          deleteOrderMetaFieldMapByOrderId > 0 &&
+          deleteMetafieldGroupMetaFieldMapByMetaFieldValueId > 0 &&
+          deleteCustomerMetaFieldMapByCustomerId > 0 &&
+          deleteUserRoleMapByUserId > 0 &&
+          deleteOrderById > 0 &&
+          deleteServiceById > 0 &&
+          deleteBaseUserById > 0) {
+          return {
+            status: 200,
+            data: {
+              success: true,
+              message: "Success: Updated and Deleted Successfully Part 4",
+              data: {
+                deleteOrderLineById,
+                deleteOrderMetaFieldMapByOrderId,
+                deleteMetafieldGroupMetaFieldMapByMetaFieldValueId,
+                deleteCustomerMetaFieldMapByCustomerId,
+                deleteUserRoleMapByUserId,
+                deleteOrderById,
+                deleteServiceById,
+                deleteBaseUserById
+              }
+            }
+          };
+        }
+
+        return {
+          status: 200,
+          data: {
+            success: false,
+            message: "Failure: Not deleted Part 4",
+            data: {
+              deleteOrderChangeByOrderLineId,
+              deleteOrderLineById,
+              deleteOrderMetaFieldMapByOrderId,
+              deleteMetafieldGroupMetaFieldMapByMetaFieldValueId,
+              deleteCustomerMetaFieldMapByCustomerId,
+              deleteUserRoleMapByUserId,
+              deleteOrderById,
+              deleteServiceById,
+              deleteBaseUserById
+            }
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/serviceDeleteErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `ServiceDeletePart4-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Service Order Line Delete:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Service Order Line Delete. ${error.message}`,
           error
         }
       };

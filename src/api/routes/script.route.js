@@ -80,4 +80,11 @@ router.get("/service/delete", verifyCors, async (ctx, next) => {
   console.log(response);
 });
 
+router.get("/service/delete/in-parts", verifyCors, async (ctx, next) => {
+  const response = await controller.serviceDeleteInParts();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 module.exports = router;

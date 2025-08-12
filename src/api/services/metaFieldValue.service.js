@@ -1,4 +1,5 @@
 const model = require("../models/metaFieldValue.model");
+const { chunk } = require('lodash');
 
 class service {
   async getExistedRecords(payload, trx) {
@@ -26,10 +27,16 @@ class service {
   }
 
   async deleteMetaFieldValueById(metaFieldValueId, trx) {
+    const batchSize = 1000;
+    const idChunks = chunk(metaFieldValueId, batchSize);
     console.log('deleteMetaFieldValueById started');
-    const data = await model.query(trx).delete().whereIn('id', metaFieldValueId);
+    let count = 0;
+    for (const batch of idChunks) {
+      await model.query(trx).delete().whereIn('id', batch);
+      console.log('batch', ++count);
+    }
     console.log('deleteMetaFieldValueById completed successfully');
-    return data;
+    return count;
   }
 }
 module.exports = new service();
