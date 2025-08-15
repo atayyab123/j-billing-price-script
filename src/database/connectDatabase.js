@@ -38,6 +38,26 @@ const connectDatabase = async (object) => {
       });
         console.log('step 2')
       }
+      else if (process.env.NODE_ENV === "stagingFortySix") {
+      console.log('step 1')
+      const sshConfig = {
+        username: process.env.SSH_STAGING_FORTY_SIX_USERNAME,
+        host: process.env.SSH_STAGING_FORTY_SIX_HOST,
+        port: process.env.SSH_STAGING_FORTY_SIX_PORT,
+        dstHost: process.env.LOCALHOST,
+        dstPort: process.env.POSTGRESQL_PORT,
+        localHost: process.env.LOCALHOST,
+        localPort: process.env.POSTGRESQL_REMOTE_PORT,
+        password: process.env.SSH_STAGING_FORTY_SIX_PASSWORD,
+      };
+      // tunnel(sshConfig);
+      tunnel(sshConfig, function (error, server) {
+        if (error) {
+          console.log("SSH connection error: ", error);
+        }
+      });
+        console.log('step 2')
+      }
     console.log("Connecting to database with config:", { client, connection, pool, query });
     const database = knex({
       client,

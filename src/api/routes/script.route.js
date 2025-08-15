@@ -3,6 +3,13 @@ const router = new koaRouter()
 const controller = require("../controllers/script.controller")
 const verifyCors = require("../../middleware/verifyCors.middleware")
 
+router.get("/test", verifyCors, async (ctx, next) => {
+  const response = await controller.test();
+  ctx.status = response.status;
+  ctx.body = response.data;
+  console.log(response);
+});
+
 router.get("/price-update/sheet-one", verifyCors, async (ctx, next) => {
   const response = await controller.priceUpdateSheetOne();
   ctx.status = response.status;

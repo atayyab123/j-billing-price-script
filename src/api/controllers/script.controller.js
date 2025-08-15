@@ -24,6 +24,45 @@ const userRoleMapService = require("../services/userRoleMap.service");
 const orderChangeService = require("../services/orderChange.service");
 
 class controller {
+  async test() {
+    try {
+      const returnValue = await Model.transaction(async (trx) => {
+        console.log('Testing Successful');
+        const getMaxMetaFieldValueId = await metaFieldValueService.maxId(trx);
+        let maxMetaFieldValueId = parseInt(getMaxMetaFieldValueId);
+        console.log('maxMetaFieldValueId', maxMetaFieldValueId);
+
+        return {
+          status: 200,
+          data: {
+            success: true,
+            message: "Success: Testing Successful",
+            data: null,
+          }
+        };
+      });
+      return returnValue;
+    } catch (error) {
+      const csv = Papa.unparse([{ error: error?.message }]);
+      const folderName =
+        __dirname + "/../../../.." + `/testErrorFiles`;
+      if (!fs.existsSync(folderName)) {
+        fs.mkdirSync(folderName, { recursive: true });
+      }
+      const filename = `test-ErrorFile`;
+      fs.writeFileSync(`${folderName}/${filename}.csv`, csv);
+      console.error("Error on Test:", error);
+      return {
+        status: 200,
+        data: {
+          success: false,
+          message: `Catch Error: Error on Test. ${error.message}`,
+          error
+        }
+      };
+    }
+  }
+
   async priceUpdateSheetOne() {
     try {
       const returnValue = await Model.transaction(async (trx) => {

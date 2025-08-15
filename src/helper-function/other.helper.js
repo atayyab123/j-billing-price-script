@@ -1,6 +1,7 @@
 const dbProduction = require("../configs/databaseProduction.config");
 const dbProductionManagement = require("../configs/databaseManagementProduction.config");
 const dbStaging = require("../configs/databaseStaging.config");
+const dbStagingFortySix = require("../configs/databaseStagingFortySix.config");
 const dbStagingManagement = require("../configs/databaseManagementStaging.config");
 const dbLocal = require("../configs/databaseLocal.config");
 const dbMyLocal = require("../configs/databaseMyLocal.config");
@@ -8,6 +9,7 @@ const dbMyLocal = require("../configs/databaseMyLocal.config");
 const isProductionEnv = () => process.env.NODE_ENV === "production";
 const isManagementEnv = () => process.env.MANAGEMENT_IP === "true";
 const isStagingEnv = () => process.env.NODE_ENV === "staging";
+const isStagingFortySixEnv = () => process.env.NODE_ENV === "stagingFortySix";
 const isMyLocalEnv = () => process.env.NODE_ENV === "myLocalhost";
 
 function getBaseUrl() {
@@ -40,6 +42,7 @@ function selectDataBase() {
   const isProduction = isProductionEnv();
   const isManagement = isManagementEnv();
   const isStaging = isStagingEnv();
+  const isStagingFortySix = isStagingFortySixEnv();
   const isMyLocal = isMyLocalEnv();
 
   if (isProduction && !isManagement) {
@@ -48,6 +51,7 @@ function selectDataBase() {
   }
   else if (isProduction && isManagement) return dbProductionManagement;
   else if (isStaging && !isManagement) return dbStaging;
+  else if (isStagingFortySix && !isManagement) return dbStagingFortySix;
   else if (isStaging && isManagement) return dbStagingManagement;
   else if (isMyLocal && !isManagement) return dbMyLocal;
   return dbLocal;
